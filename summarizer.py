@@ -1,3 +1,4 @@
+import logging
 import textwrap
 import asyncio
 import subprocess
@@ -7,11 +8,81 @@ import os
 import click
 from openai import AsyncOpenAI
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 # Constants
 VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mov', '.m4a']
 
 client = AsyncOpenAI()
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio Transcript Summary</title>
+    <style>
+        body {{
+            margin: 20px;
+            font-family: Arial, sans-serif;
+        }}
+
+        .audio-container {{
+            position: fixed;
+            bottom: 20px; /* Padding from the bottom */
+            left: 50%;
+            transform: translateX(-50%);
+        }}
+
+        div[data-summary-number] {{
+            cursor: pointer;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }}
+
+        div[data-summary-number]:hover {{
+            background-color: #f0f0f0;
+        }}
+    </style>
+    <script>
+        function playSegment(start) {{
+            var audioPlayer = document.getElementById('audioPlayer');
+            var source = document.getElementById('audioSource');
+
+            source.src = './audio.mp3#t=' + start;
+            audioPlayer.load();
+            audioPlayer.play();
+        }}
+
+        function setupEventListeners() {{
+            var summaryDivs = document.querySelectorAll('div[data-summary-number]');
+            summaryDivs.forEach(function(div) {{
+                div.addEventListener('click', function() {{
+                    playSegment(this.getAttribute('data-start'));
+                }});
+            }});
+        }}
+
+        window.onload = setupEventListeners;
+    </script>
+</head>
+<body>
+    <div class="audio-container">
+        <audio id="audioPlayer" controls>
+            <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
+            Your browser does not support the audio element.
+        </audio>
+    </div>
+
+{summary}
+
+</body>
+</html>
+"""
 
 
 def coro(f):
@@ -22,30 +93,41 @@ def coro(f):
     return wrapper
 
 
-async def create_transcript(media_path: str, dir: str):
+async def create_transcript(media_path: str, dir: str, force: bool):
     """ Use openai speech-to-text to extract audio, and save it to 'dir/transcript.vtt' """
     # TODO support detecting files over 25mb and splitting them up
     #  Call openai to transcribe the audio
     with open(media_path, 'rb') as f:
-        print("Transcribing audio...")
+        logger.info("Transcribing audio...")
         transcript = await client.audio.transcriptions.create(file=f, model='whisper-1', response_format='vtt')
-        print("Transcription complete!")
+        logger.info("Transcription complete!")
 
     #  Save the transcription to 'dir/transcript.md'
-    print("Saving transcript...")
+    logger.info("Saving transcript...")
     os.makedirs(dir, exist_ok=True)
+
+    if not force and os.path.exists(f'{dir}/transcript.vtt'):
+        logger.info("Transcript already exists, skipping...")
+        return
+
     with open(f'{dir}/transcript.vtt', 'w') as f:
         f.write(transcript)
-    print("Transcript saved!")
+    logger.info("Transcript saved!")
 
 
-async def generate_summary(dir: str):
+async def generate_summary(dir: str, force: bool):
     """ Use openai to summarize the VTT formatted transcript, and save it to 'dir/summary.html' """
     transcript_path = os.path.join(dir, "transcript.vtt")
     summary_path = os.path.join(dir, "summary.html")
 
+    if not force and os.path.exists(summary_path):
+        logger.info("Summary already exists, skipping...")
+        return
+
     with open(transcript_path, 'r') as file:
         transcript_text = file.read()
+
+    logger.info('Generating summary...')
 
     response = await client.chat.completions.create(
         messages=[{
@@ -54,66 +136,48 @@ async def generate_summary(dir: str):
                     Transcript:
                     {transcript_text}
                     ***
-                    Create a list of that summarizes topics discussed parties in the transcript above.
-                    Each section should start with a markdown URL of referencing the relevant time in the audio clip.
-                    Include names of people who that you think were talking, or were mentioned.
+                    Create a list that summarizes topics discussed and parties involved in the transcript above.
+                    Capture topics briefly (only highlight key points or issues).
+                    Key points are things that were mentioned frequently in the discussion, or decisions that were made.
+                    Include any names of people, places, or times (who, what, when) that are mentioned in the transcript, or you can be inferred by the context.
                     Give a response in html. Highlight key points with <mark> tags.
                     Use this output format:
 
-                    <html>
-
-                    <body>
-                      <h1>Summary</h1>
-                      <p>
-                        <b>00:00 - 00:10</b>
-                        <audio controls>
-                          <source src="./audio.mp3#t=00:00:00" type="audio/mpeg" />
-                        </audio>
+                    <div data-summary-number="1" data-start="00:00" data-end="00:10">
+                      <b>00:00 - 00:10</b>
                       <ul>
-                        <li>Discussed the weather, what was happening over the weekend.
+                        <li>Discussed the weather, what was happening over the weekend.</li>
+                      </ul>
+                    </div>
+                    <div data-summary-number="2" data-start="03:15" data-end="05:05">
+                      <b>03:15 - 05:05</b>
+                      <ul>
+                        <li>
+                          Started the agenda: <b>vacation planning</b>, <b>action items</b>.
                         </li>
                       </ul>
-                      </p>
-                      <p>
-                        <b>03:15 - 05:05</b>
-                        <audio controls>
-                          <source src="./audio.mp3#t=00:03:15" type="audio/mpeg" />
-                        </audio>
+                    </div>
+                    <div data-summary-number="3" data-start="05:05" data-end="08:13">
+                      <b>05:05 - 08:13</b>
                       <ul>
-                        <li>Started the agenda: <b>vacation planning</b>, <b>action items</b>.
+                        <li>Started talking about <b>vacation planning</b>.</li>
+                        <li>
+                          Jerry discussed what kind of socks, pants and shoes should be brought.
+                        </li>
+                        <li>Sheryll brought up the idea of bringing a tent.</li>
+                        <li><mark>Decided to bring a tent, and personal items</mark>.</li>
+                      </ul>
+                    </div>
+                    <div data-summary-number="4" data-start="08:13" data-end="10:15">
+                      <b>08:13 - 10:15</b>
+                      <ul>
+                        <li>Started talking about <b>action items</b></li>
+                        <li>
+                          People expressed a need to
+                          <mark>have another meeting after vacation</mark>.
                         </li>
                       </ul>
-                      </p>
-                      <p>
-                        <b>05:05 - 8:13</b>
-                        <audio controls>
-                          <source src="./audio.mp3#t=00:05:05" type="audio/mpeg" />
-                        </audio>
-                      <ul>
-                        <li>Started talking about <b>vacation planning</b>.
-                        </li>
-                        <li>Jerry discussed what kind of socks, pants and shoes should be brought.
-                        </li>
-                        <li>Sheryll brought up the idea of bringing a tent.
-                        </li>
-                      </ul>
-                      </p>
-                      <p>
-                        <b>08:13 - 10:15</b>
-                        <audio controls>
-                          <source src="./audio.mp3#t=00:08:13" type="audio/mpeg" />
-                        </audio>
-                      <ul>
-                        <li>Started talking about <b>action items</b>
-                        </li>
-                        <li>People expressed a need to have another meeting after vacation.
-                        </li>
-                      </ul>
-                      </p>
-                    </body>
-
-
-                    </html>
+                    </div>
                     ***
                     """)
             }],
@@ -127,7 +191,7 @@ async def generate_summary(dir: str):
         file.write(summary)
 
 
-def create_lower_quality_mp3(source_file: str, dir: str):
+def create_lower_quality_mp3(source_file: str, dir: str, force: bool):
     """
     Generates a lower quality MP3 file from the source file using FFmpeg.
 
@@ -136,25 +200,55 @@ def create_lower_quality_mp3(source_file: str, dir: str):
     """
     output_file = os.path.join(dir, "audio.mp3")
 
+    if not force and os.path.exists(output_file):
+        logger.info("Lower quality MP3 already exists, skipping...")
+        return
+
+    logger.info("Generating lower quality MP3...")
+
+    os.makedirs(dir, exist_ok=True)
+
     command = [
         "ffmpeg",
         "-i", source_file,
         "-codec:a", "libmp3lame",
-        "-qscale:a", "5",
+        "-qscale:a", "9",
         output_file
     ]
+    logger.info(f"Running command: {' '.join(command)}")
     subprocess.run(command)
 
+async def create_index(dir: str, force: bool):
+    """ Generate an index.html file for the directory """
+    index_path = os.path.join(dir, "index.html")
+
+    if not force and os.path.exists(index_path):
+        logger.info("Index already exists, skipping...")
+        return
+
+    with open(os.path.join(dir, "summary.html"), 'r') as file:
+        summary = file.read()
+
+    logger.info("Generating index.html...")
+
+    with open(index_path, 'w') as file:
+        file.write(HTML_TEMPLATE.format(summary=summary))
 
 @click.command()
 @click.argument('file_path')
-@click.option('--dir_name', default=None, help='Custom directory name')
+@click.option('--output-dir', default=None, help='Output directory')
+@click.option('--force', default=False, help='Overwrite any existing files')
+@click.option('--level', default=logging.DEBUG, help='Log level')
 @coro
-async def main(file_path, dir_name):
-    dirname = dir_name if dir_name else os.path.basename(file_path).split('.')[0]
-    await create_transcript(file_path, dirname)
-    await generate_summary(dirname)
-    create_lower_quality_mp3(file_path, dirname)
+async def main(file_path, output_dir, force, level):
+    logging.basicConfig(level=level)
+
+    dirname = output_dir if output_dir else os.path.basename(file_path).split('.')[0]
+    logger.info(f"Output directory: {dirname}")
+    create_lower_quality_mp3(file_path, dirname, force)
+    await create_transcript(f"{dirname}/audio.mp3", dirname, force)
+    await generate_summary(dirname, force)
+    await create_index(dirname, force)
 
 if __name__ == '__main__':
     main()
