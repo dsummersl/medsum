@@ -77,6 +77,19 @@ HTML_TEMPLATE = """
         div[data-summary-number].playing {{
             background-color: #ffdab9; /* light orange */
         }}
+
+        .zoomed-img {{
+            position: fixed;
+            z-index: 10;
+            width: 50vw;
+            height: auto;
+            box-shadow: 0 0 8px rgba(0,0,0,0.5);
+            display: none;
+            pointer-events: none; /* Make sure it doesn't interfere with other elements */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }}
     </style>
     <script>
         function insertImages() {{
@@ -85,6 +98,7 @@ HTML_TEMPLATE = """
             summaries.forEach(function(summary) {{
                 var startTime = summary.getAttribute('data-start');
                 var imageName = startTimeToImageName(startTime);
+                var zoomedImg = document.querySelector('.zoomed-img');
 
                 // Create an img element and set its source
                 var img = document.createElement('img');
@@ -96,6 +110,14 @@ HTML_TEMPLATE = """
                 img.onload = function() {{
                     // Insert the image above the summary div if it loads successfully
                     summary.insertBefore(img, summary.lastChild);
+                }};
+                // Event listeners for hover
+                img.onmouseover = function() {{
+                    zoomedImg.src = img.src;
+                    zoomedImg.style.display = 'block';
+                }};
+                img.onmouseout = function() {{
+                    zoomedImg.style.display = 'none';
                 }};
 
                 // Create a container for the text content
@@ -154,7 +176,7 @@ HTML_TEMPLATE = """
                 var startTime = timeStringToSeconds(div.getAttribute('data-start'));
                 var endTime = timeStringToSeconds(div.getAttribute('data-end'));
 
-                if (currentTime >= startTime && currentTime <= endTime) {{
+                if (currentTime >= startTime && currentTime < endTime) {{
                     div.classList.add('playing');
                 }} else {{
                     div.classList.remove('playing');
@@ -202,6 +224,7 @@ HTML_TEMPLATE = """
     {transcript}
     </div>
 
+    <img class="zoomed-img" src="" alt="">
 </body>
 </html>
 """
@@ -370,12 +393,9 @@ def create_lower_quality_mp3(source_file: str, dir: str, force: bool):
 
 
 async def create_index(dir: str, force: bool):
-    """Generate an index.html file for the directory"""
+    """Generate an index.html and dir-name html file for the directory"""
     index_path = os.path.join(dir, "index.html")
-
-    if not force and os.path.exists(index_path):
-        logger.info("Index already exists, skipping...")
-        return
+    dir_path = os.path.join(dir, f"{dir}.html")
 
     with open(os.path.join(dir, "summary.html"), "r") as file:
         summary = file.read()
@@ -385,8 +405,17 @@ async def create_index(dir: str, force: bool):
 
     logger.info("Generating index.html...")
 
-    with open(index_path, "w") as file:
-        file.write(HTML_TEMPLATE.format(summary=summary, transcript=transcript))
+    if force or os.path.exists(index_path):
+        with open(index_path, "w") as file:
+            file.write(HTML_TEMPLATE.format(summary=summary, transcript=transcript))
+    else:
+        logger.info("Index already exists, skipping...")
+
+    if force or os.path.exists(index_path):
+        with open(dir_path, "w") as file:
+            file.write(HTML_TEMPLATE.format(summary=summary, transcript=transcript))
+    else:
+        logger.info("Dir HTML already exists, skipping...")
 
 
 async def create_snapshots_at_time_increments(source_file: str, dir: str, force: bool):
