@@ -1,3 +1,4 @@
+from html.parser import HTMLParser
 import logging
 import asyncio
 import subprocess
@@ -10,9 +11,6 @@ from openai import AsyncOpenAI
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-# Constants
-VIDEO_EXTENSIONS = [".mp4", ".avi", ".mov", ".m4a"]
 
 client = AsyncOpenAI()
 
@@ -50,12 +48,25 @@ HTML_TEMPLATE = """
         }}
 
         div[data-summary-number] {{
-            cursor: pointer;
+            display: flex;
+            align-items: center;
             margin-bottom: 10px;
-            padding: 10px;
             border: 1px solid #ddd;
+            padding: 10px;
             border-radius: 5px;
             transition: background-color 0.3s ease;
+        }}
+
+        div[data-summary-number] img {{
+            flex: 1 1 33%; /* 1/3 of the container's width */
+            max-width: 200px;
+            height: auto;
+            margin-left: auto; /* Aligns the image to the right */
+        }}
+
+        div[data-summary-number] > * {{
+            flex: 2 1 66%; /* 2/3 of the container's width */
+            margin-right: 10px;
         }}
 
           div[data-summary-number]:hover,
@@ -68,13 +79,56 @@ HTML_TEMPLATE = """
         }}
     </style>
     <script>
+        function insertImages() {{
+            var summaries = document.querySelectorAll('.summary-container div[data-summary-number]');
+
+            summaries.forEach(function(summary) {{
+                var startTime = summary.getAttribute('data-start');
+                var imageName = startTimeToImageName(startTime);
+
+                // Create an img element and set its source
+                var img = document.createElement('img');
+                img.src = imageName;
+                img.onerror = function() {{
+                    // If the image fails to load, remove the img element
+                    img.remove();
+                }};
+                img.onload = function() {{
+                    // Insert the image above the summary div if it loads successfully
+                    summary.insertBefore(img, summary.lastChild);
+                }};
+
+                // Create a container for the text content
+                var textContent = document.createElement('div');
+                textContent.className = 'text-content';
+
+                // Move existing children (except img) to textContent div
+                Array.from(summary.childNodes).forEach(function(child) {{
+                    if (child.nodeName !== 'IMG') {{
+                        textContent.appendChild(child);
+                    }}
+                }});
+
+                // Append the textContent div and image to the summary div
+                summary.appendChild(textContent);
+                summary.appendChild(img);
+            }});
+        }}
+
+        function startTimeToImageName(startTime) {{
+            // Assuming startTime format is 'mm:ss'
+            var parts = startTime.split(':');
+            var minutes = parts[0];
+            var seconds = parts[1];
+            return minutes + '_' + seconds + '.jpg';
+        }}
+
         function playSegment(start, summaryNumber) {{
             var audioPlayer = document.getElementById('audioPlayer');
             var source = document.getElementById('audioSource');
 
             source.src = './audio.mp3#t=' + start;
             audioPlayer.load();
-            audioPlayer.play();
 
             highlightSummary(summaryNumber)
         }}
@@ -125,6 +179,8 @@ HTML_TEMPLATE = """
 
             var audioPlayer = document.getElementById('audioPlayer');
             audioPlayer.addEventListener('timeupdate', updateHighlightBasedOnTime);
+
+            insertImages();
         }}
 
         window.onload = setupEventListeners;
@@ -304,7 +360,13 @@ def create_lower_quality_mp3(source_file: str, dir: str, force: bool):
         output_file,
     ]
     logger.info(f"Running command: {' '.join(command)}")
-    subprocess.run(command)
+    suppress_output = not logger.isEnabledFor(logging.DEBUG)
+    subprocess.run(
+        command,
+        stdout=subprocess.DEVNULL if suppress_output else None,
+        stderr=subprocess.DEVNULL if suppress_output else None,
+        check=True
+    )
 
 
 async def create_index(dir: str, force: bool):
@@ -327,11 +389,78 @@ async def create_index(dir: str, force: bool):
         file.write(HTML_TEMPLATE.format(summary=summary, transcript=transcript))
 
 
+async def create_snapshots_at_time_increments(source_file: str, dir: str, force: bool):
+    """ If the file is a video, create snapshots at the start time of each summary"""
+    # Check if video file exists
+    if not source_file.endswith(".mp4") and not source_file.endswith(".m4a"):
+        logger.info("Not a video file, skipping...")
+        return
+
+    # Path to the summary file
+    summary_path = os.path.join(dir, "summary.html")
+
+    # Read the summary file and extract start times
+    start_times = extract_start_times(summary_path)
+
+    # Create snapshots
+    for start_time in start_times:
+        snapshot_filename = time_to_filename(start_time)
+        snapshot_path = os.path.join(dir, snapshot_filename)
+        if not force and os.path.exists(snapshot_path):
+            logger.info(f"Snapshot for {start_time} already exists, skipping...")
+            continue
+        take_snapshot(source_file, start_time, snapshot_path)
+
+
+class SummaryHTMLParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.start_times = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "div":
+            attrs_dict = dict(attrs)
+            if "data-start" in attrs_dict:
+                self.start_times.append(attrs_dict["data-start"])
+
+
+def extract_start_times(summary_path):
+    parser = SummaryHTMLParser()
+    with open(summary_path, 'r') as file:
+        parser.feed(file.read())
+    return parser.start_times
+
+
+def time_to_filename(time_string):
+    # Convert time string to filename
+    m, s = time_string.split(':')
+    return f"{m}_{s}.jpg"
+
+
+def take_snapshot(video_path, start_time, snapshot_path):
+    # Use FFmpeg to take a snapshot at the start time
+    command = [
+        "ffmpeg",
+        "-ss", start_time,  # Start time
+        "-i", video_path,
+        "-q:v", "5",
+        "-frames:v", "1",
+        snapshot_path
+    ]
+    logger.info(f"Running command: {' '.join(command)}")
+    suppress_output = not logger.isEnabledFor(logging.DEBUG)
+    subprocess.run(
+        command,
+        stdout=subprocess.DEVNULL if suppress_output else None,
+        stderr=subprocess.DEVNULL if suppress_output else None,
+        check=True
+    )
+
 @click.command()
 @click.argument("file_path")
 @click.option("--output-dir", default=None, help="Output directory")
 @click.option("--force", default=False, help="Overwrite any existing files")
-@click.option("--level", default=logging.DEBUG, help="Log level")
+@click.option('--level', default='WARNING', help='Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)')
 @coro
 async def main(file_path, output_dir, force, level):
     logging.basicConfig(level=level)
@@ -345,6 +474,7 @@ async def main(file_path, output_dir, force, level):
     create_lower_quality_mp3(file_path, dirname, force)
     await create_transcript(f"{dirname}/audio.mp3", dirname, force)
     await generate_summary(dirname, force)
+    await create_snapshots_at_time_increments(file_path, dirname, force)
     await create_index(dirname, force)
 
 
