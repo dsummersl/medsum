@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 # Constants
-VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mov', '.m4a']
+VIDEO_EXTENSIONS = [".mp4", ".avi", ".mov", ".m4a"]
 
 client = AsyncOpenAI()
 
@@ -25,6 +25,21 @@ HTML_TEMPLATE = """
         body {{
             margin: 20px;
             font-family: Arial, sans-serif;
+        }}
+
+        .container {{
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }}
+
+        .summary-container {{
+            border-right: 1px solid #ddd;
+        }}
+
+        .vtt-container {{
+            white-space: pre-wrap; /* To preserve formatting of VTT file */
+            display: none;
         }}
 
         .audio-container {{
@@ -43,27 +58,73 @@ HTML_TEMPLATE = """
             transition: background-color 0.3s ease;
         }}
 
-        div[data-summary-number]:hover {{
+          div[data-summary-number]:hover,
+        div[data-summary-number].highlight {{
             background-color: #f0f0f0;
+        }}
+
+        div[data-summary-number].playing {{
+            background-color: #ffdab9; /* light orange */
         }}
     </style>
     <script>
-        function playSegment(start) {{
+        function playSegment(start, summaryNumber) {{
             var audioPlayer = document.getElementById('audioPlayer');
             var source = document.getElementById('audioSource');
 
             source.src = './audio.mp3#t=' + start;
             audioPlayer.load();
             audioPlayer.play();
+
+            highlightSummary(summaryNumber)
+        }}
+
+        function highlightSummary(summaryNumber) {{
+            var summaries = document.querySelectorAll('.summary-container div[data-summary-number]');
+            summaries.forEach(function(div) {{
+                if (div.getAttribute('data-summary-number') === summaryNumber) {{
+                    div.classList.add('playing');
+                }} else {{
+                    div.classList.remove('playing');
+                }}
+            }});
+        }}
+
+
+        function updateHighlightBasedOnTime() {{
+            var audioPlayer = document.getElementById('audioPlayer');
+            var currentTime = audioPlayer.currentTime; // Current playback time in seconds
+
+            var summaries = document.querySelectorAll('.summary-container div[data-summary-number]');
+            summaries.forEach(function(div) {{
+                var startTime = timeStringToSeconds(div.getAttribute('data-start'));
+                var endTime = timeStringToSeconds(div.getAttribute('data-end'));
+
+                if (currentTime >= startTime && currentTime <= endTime) {{
+                    div.classList.add('playing');
+                }} else {{
+                    div.classList.remove('playing');
+                }}
+            }});
+        }}
+
+        function timeStringToSeconds(timeString) {{
+            var hm = timeString.split(':'); // split it at the colons
+            return (+hm[0]) * 60 + (+hm[1]);
         }}
 
         function setupEventListeners() {{
             var summaryDivs = document.querySelectorAll('div[data-summary-number]');
             summaryDivs.forEach(function(div) {{
                 div.addEventListener('click', function() {{
-                    playSegment(this.getAttribute('data-start'));
+                  var start = this.getAttribute('data-start');
+                  var summaryNumber = this.getAttribute('data-summary-number');
+                  playSegment(start, summaryNumber);
                 }});
             }});
+
+            var audioPlayer = document.getElementById('audioPlayer');
+            audioPlayer.addEventListener('timeupdate', updateHighlightBasedOnTime);
         }}
 
         window.onload = setupEventListeners;
@@ -77,7 +138,13 @@ HTML_TEMPLATE = """
         </audio>
     </div>
 
-{summary}
+    <div class="container summary-container">
+    {summary}
+    </div>
+
+    <div class="container vtt-container">
+    {transcript}
+    </div>
 
 </body>
 </html>
@@ -142,27 +209,29 @@ def coro(f):
 
 
 async def create_transcript(media_path: str, dir: str, force: bool):
-    """ Use openai speech-to-text to extract audio, and save it to 'dir/transcript.vtt' """
-    if not force and os.path.exists(f'{dir}/transcript.vtt'):
+    """Use openai speech-to-text to extract audio, and save it to 'dir/transcript.vtt'"""
+    if not force and os.path.exists(f"{dir}/transcript.vtt"):
         logger.info("Transcript already exists, skipping...")
         return
 
-    with open(media_path, 'rb') as f:
+    with open(media_path, "rb") as f:
         logger.info("Transcribing audio...")
-        transcript = await client.audio.transcriptions.create(file=f, model='whisper-1', response_format='vtt')
+        transcript = await client.audio.transcriptions.create(
+            file=f, model="whisper-1", response_format="vtt"
+        )
         logger.info("Transcription complete!")
 
     #  Save the transcription to 'dir/transcript.md'
     logger.info("Saving transcript...")
     os.makedirs(dir, exist_ok=True)
 
-    with open(f'{dir}/transcript.vtt', 'w') as f:
+    with open(f"{dir}/transcript.vtt", "w") as f:
         f.write(transcript)
     logger.info("Transcript saved!")
 
 
 async def generate_summary(dir: str, force: bool):
-    """ Use openai to summarize the VTT formatted transcript, and save it to 'dir/summary.html' """
+    """Use openai to summarize the VTT formatted transcript, and save it to 'dir/summary.html'"""
     transcript_path = os.path.join(dir, "transcript.vtt")
     summary_path = os.path.join(dir, "summary.html")
 
@@ -170,16 +239,19 @@ async def generate_summary(dir: str, force: bool):
         logger.info("Summary already exists, skipping...")
         return
 
-    with open(transcript_path, 'r') as file:
+    with open(transcript_path, "r") as file:
         transcript_text = file.read()
 
-    logger.info('Generating summary...')
+    logger.info("Generating summary...")
 
     # Chunk size (number of characters times the estimated characters per token)
     chunk_size = 16000 * 2
 
     # Split the transcript text into chunks
-    chunks = [transcript_text[i:i + chunk_size] for i in range(0, len(transcript_text), chunk_size)]
+    chunks = [
+        transcript_text[i : i + chunk_size]
+        for i in range(0, len(transcript_text), chunk_size)
+    ]
 
     # List to hold summaries of each chunk
     summaries = []
@@ -190,21 +262,17 @@ async def generate_summary(dir: str, force: bool):
         # Create a prompt for each chunk
         prompt = SUMMARY_TEMPLATE.format(transcript_text=chunk)
         response = await client.chat.completions.create(
-            messages=[{
-                "role": "user",
-                "content": prompt
-            }],
-            model="gpt-3.5-turbo-16k"
+            messages=[{"role": "user", "content": prompt}], model="gpt-3.5-turbo-16k"
         )
         # Append the summary of the chunk to the summaries list
         summaries.append(response.choices[0].message.content.strip())
 
     logger.info("Joining summaries, and saving...")
     # Combine all summaries into one
-    combined_summary = '\n'.join(summaries)
+    combined_summary = "\n".join(summaries)
 
     # Save the combined summary to a markdown file
-    with open(summary_path, 'w') as file:
+    with open(summary_path, "w") as file:
         file.write(combined_summary)
 
 
@@ -227,45 +295,58 @@ def create_lower_quality_mp3(source_file: str, dir: str, force: bool):
 
     command = [
         "ffmpeg",
-        "-i", source_file,
-        "-codec:a", "libmp3lame",
-        "-qscale:a", "9",
-        output_file
+        "-i",
+        source_file,
+        "-codec:a",
+        "libmp3lame",
+        "-qscale:a",
+        "9",
+        output_file,
     ]
     logger.info(f"Running command: {' '.join(command)}")
     subprocess.run(command)
 
+
 async def create_index(dir: str, force: bool):
-    """ Generate an index.html file for the directory """
+    """Generate an index.html file for the directory"""
     index_path = os.path.join(dir, "index.html")
 
     if not force and os.path.exists(index_path):
         logger.info("Index already exists, skipping...")
         return
 
-    with open(os.path.join(dir, "summary.html"), 'r') as file:
+    with open(os.path.join(dir, "summary.html"), "r") as file:
         summary = file.read()
+
+    with open(os.path.join(dir, "transcript.vtt"), "r") as file:
+        transcript = file.read()
 
     logger.info("Generating index.html...")
 
-    with open(index_path, 'w') as file:
-        file.write(HTML_TEMPLATE.format(summary=summary))
+    with open(index_path, "w") as file:
+        file.write(HTML_TEMPLATE.format(summary=summary, transcript=transcript))
+
 
 @click.command()
-@click.argument('file_path')
-@click.option('--output-dir', default=None, help='Output directory')
-@click.option('--force', default=False, help='Overwrite any existing files')
-@click.option('--level', default=logging.DEBUG, help='Log level')
+@click.argument("file_path")
+@click.option("--output-dir", default=None, help="Output directory")
+@click.option("--force", default=False, help="Overwrite any existing files")
+@click.option("--level", default=logging.DEBUG, help="Log level")
 @coro
 async def main(file_path, output_dir, force, level):
     logging.basicConfig(level=level)
 
-    dirname = output_dir if output_dir else os.path.basename(file_path).split('.')[0]
+    dirname = (
+        output_dir
+        if output_dir
+        else "_".join(os.path.basename(file_path).split(".")[0:-1]).replace(" ", "_")
+    )
     logger.info(f"Output directory: {dirname}")
     create_lower_quality_mp3(file_path, dirname, force)
     await create_transcript(f"{dirname}/audio.mp3", dirname, force)
     await generate_summary(dirname, force)
     await create_index(dirname, force)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
