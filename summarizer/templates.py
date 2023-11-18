@@ -9,6 +9,10 @@ HTML_TEMPLATE = """
             font-family: Arial, sans-serif;
         }}
 
+        h1 {{
+            text-align: center;
+        }}
+
         .container {{
             flex: 1;
             overflow-y: auto;
@@ -16,7 +20,6 @@ HTML_TEMPLATE = """
         }}
 
         .summary-container {{
-            border-right: 1px solid #ddd;
         }}
 
         .vtt-container {{
@@ -205,6 +208,7 @@ HTML_TEMPLATE = """
     </script>
 </head>
 <body>
+    <h1>{title}</h1>
     <div class="audio-container">
         <audio id="audioPlayer" controls>
             <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
@@ -236,8 +240,8 @@ Include any names of people, places, or times (who, what, when) that are mention
 Give a response in html. Highlight key points with <mark> tags.
 
 Use this output format:
-<div data-start="[hour]:[minute]" data-end="[hour]:[minute]">
-  <b>[hour]:[minute] - [hour]:[minute]</b>
+<div data-start="[hour]:[minute]:[second]" data-end="[hour]:[minute]:[second]">
+  <b>[hour]:[minute]:[second] - [hour]:[minute]:[second]</b>
   <ul>
     <li>[entry 1]</li>
     <li>[entry 2]</li>
@@ -245,22 +249,22 @@ Use this output format:
 </div>
 
 Example:
-<div data-start="00:00" data-end="00:10">
-  <b>00:00 - 00:10</b>
+<div data-start="00:00:00" data-end="00:00:10">
+  <b>00:00:00 - 00:00:10</b>
   <ul>
     <li>Discussed the weather, what was happening over the weekend.</li>
   </ul>
 </div>
-<div data-start="03:15" data-end="05:05">
-  <b>03:15 - 05:05</b>
+<div data-start="00:03:15" data-end="00:05:05">
+  <b>00:03:15 - 00:05:05</b>
   <ul>
     <li>
       Started the agenda: <b>vacation planning</b>, <b>action items</b>.
     </li>
   </ul>
 </div>
-<div data-start="05:05" data-end="08:13">
-  <b>05:05 - 08:13</b>
+<div data-start="00:05:05" data-end="00:08:13">
+  <b>00:05:05 - 00:08:13</b>
   <ul>
     <li>Started talking about <b>vacation planning</b>.</li>
     <li>
@@ -270,8 +274,8 @@ Example:
     <li><mark>Decided to bring a tent, and personal items</mark>.</li>
   </ul>
 </div>
-<div data-start="08:13" data-end="10:15">
-  <b>08:13 - 10:15</b>
+<div data-start="00:08:13" data-end="00:10:15">
+  <b>00:08:13 - 00:10:15</b>
   <ul>
     <li>Started talking about <b>action items</b></li>
     <li>

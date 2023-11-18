@@ -110,7 +110,7 @@ async def create_index(dir: str, force: bool):
     logger.info(f"Index path: {index_path}")
     if force or not os.path.exists(index_path):
         with open(index_path, "w") as file:
-            file.write(HTML_TEMPLATE.format(summary=summary, transcript=transcript))
+            file.write(HTML_TEMPLATE.format(title=dir, summary=summary, transcript=transcript))
     else:
         logger.info("Index already exists, skipping...")
 
