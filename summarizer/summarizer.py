@@ -8,11 +8,11 @@ from html.parser import HTMLParser
 import click
 from openai import AsyncOpenAI
 
-from summarizer.ffmpeg import (create_lower_quality_mp3,
+from .ffmpeg import (create_lower_quality_mp3,
                                file_contains_video_or_audio)
-from summarizer.ffmpeg import logger as ffmpeg_logger
-from summarizer.ffmpeg import take_snapshot
-from summarizer.templates import HTML_TEMPLATE, SUMMARY_TEMPLATE
+from .ffmpeg import logger as ffmpeg_logger
+from .ffmpeg import take_snapshot
+from .templates import HTML_TEMPLATE, SUMMARY_TEMPLATE
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI()
