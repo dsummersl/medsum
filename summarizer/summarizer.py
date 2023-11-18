@@ -8,8 +8,7 @@ from html.parser import HTMLParser
 import click
 from openai import AsyncOpenAI
 
-from .ffmpeg import (create_lower_quality_mp3,
-                               file_contains_video_or_audio)
+from .ffmpeg import create_lower_quality_mp3, file_contains_video_or_audio
 from .ffmpeg import logger as ffmpeg_logger
 from .ffmpeg import take_snapshot
 from .templates import HTML_TEMPLATE, SUMMARY_TEMPLATE
@@ -94,10 +93,10 @@ async def generate_summary(dir: str, force: bool):
         file.write(combined_summary)
 
 
-async def create_index(dir: str, force: bool):
+async def create_index(dir: str, output_path: str, force: bool):
     """Generate an index.html and dir-name html file for the directory"""
     index_path = os.path.join(dir, "index.html")
-    dir_path = os.path.join(dir, f"{dir}.html")
+    dir_path = os.path.join(dir, f"{output_path}.html")
 
     with open(os.path.join(dir, "summary.html"), "r") as file:
         summary = file.read()
@@ -110,14 +109,16 @@ async def create_index(dir: str, force: bool):
     logger.info(f"Index path: {index_path}")
     if force or not os.path.exists(index_path):
         with open(index_path, "w") as file:
-            file.write(HTML_TEMPLATE.format(title=dir, summary=summary, transcript=transcript))
+            file.write(
+                HTML_TEMPLATE.format(title=output_path, summary=summary, transcript=transcript)
+            )
     else:
         logger.info("Index already exists, skipping...")
 
     logger.info(f"Dir HTML path: {dir_path}")
     if force or not os.path.exists(dir_path):
         with open(dir_path, "w") as file:
-            file.write(HTML_TEMPLATE.format(summary=summary, transcript=transcript))
+            file.write(HTML_TEMPLATE.format(title=output_path, summary=summary, transcript=transcript))
     else:
         logger.info("Dir HTML already exists, skipping...")
 
@@ -168,15 +169,15 @@ def time_to_filename(time_string):
 
 @click.command()
 @click.argument("file_path")
-@click.option("--output-dir", default=None, help="Output directory")
-@click.option("--force", default=False, help="Overwrite any existing files")
+@click.option("--output-path", "-o", default=None, help="Where to drop the output files")
+@click.option("--force", "-f", default=False, help="Overwrite any existing files")
 @click.option(
-    "--level",
+    "--level", "-l",
     default="WARNING",
     help="Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)",
 )
 @coro
-async def main(file_path, output_dir, force, level):
+async def main(file_path, output_path, force, level):
     logging.basicConfig(level=level)
     logger.setLevel(level)
     ffmpeg_logger.setLevel(level)
@@ -184,11 +185,12 @@ async def main(file_path, output_dir, force, level):
     logger.debug(f"Logging level: {level}")
     logger.debug(f"Force: {force}")
 
-    dirname = (
-        output_dir
-        if output_dir
-        else "_".join(os.path.basename(file_path).split(".")[0:-1]).replace(" ", "_")
+    output_path = output_path if output_path else "."
+    output_dirname = "_".join(os.path.basename(file_path).split(".")[0:-1]).replace(
+        " ", "_"
     )
+    dirname = f"{output_path}/{output_dirname}"
+
     logger.info(f"Output directory: {dirname}")
 
     has_video, has_audio = file_contains_video_or_audio(file_path)
@@ -204,7 +206,7 @@ async def main(file_path, output_dir, force, level):
     if has_video:
         await create_snapshots_at_time_increments(file_path, dirname, force)
 
-    await create_index(dirname, force)
+    await create_index(dirname, output_dirname, force)
 
 
 if __name__ == "__main__":

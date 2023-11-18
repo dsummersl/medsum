@@ -38,3 +38,15 @@ Summarize an audio file:
 medsum /path/to/audio.mp3
 medsum /path/to/audio_and_video.mp4
 ```
+
+# More Ideas
+
+- Surface the transcript.vtt in some way.
+- Let the user supply a transcript file (save $ when possible)
+- Adding an option to specify the minimum interval to capture images from
+    videos. Possibly filtering out adjacent snapshots that are identical or 90%
+    so.
+
+# Limitations
+
+- Audio currently isn't chunked to 25mb
