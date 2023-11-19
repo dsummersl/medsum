@@ -1,6 +1,6 @@
 # Media Summarizer
 
-Media Summarizer is a simple Python tool for summarizing text from audio and video files. It uses FFmpeg for processing media files and OpenAI's GPT models for generating summaries.
+Media Summarizer is a simple CLI tool for summarizing text from audio and video files. It uses FFmpeg for processing media files and OpenAI's GPT models for generating summaries.
 
 ## Features
 

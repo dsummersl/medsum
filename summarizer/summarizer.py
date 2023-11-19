@@ -169,15 +169,17 @@ def time_to_filename(time_string):
 
 @click.command()
 @click.argument("file_path")
-@click.option("--output-path", "-o", default=None, help="Where to drop the output files")
-@click.option("--force", "-f", default=False, help="Overwrite any existing files")
+@click.option("--transcript", "-t", type=click.Path(exists=True), help="Path to supplied transcript (if supplied, medsum won't generate one)")
+@click.option("--output", "-o", default=None, help="Where to drop the output files")
+@click.option("--force/--no-force", "-f", default=False, help="Overwrite any existing files")
+@click.option("--quiet", "-q", default=False, help="Suppress printing activities")
 @click.option(
     "--level", "-l",
     default="WARNING",
     help="Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)",
 )
 @coro
-async def main(file_path, output_path, force, level):
+async def main(transcript, file_path, output, force, quiet, level):
     logging.basicConfig(level=level)
     logger.setLevel(level)
     ffmpeg_logger.setLevel(level)
@@ -185,11 +187,11 @@ async def main(file_path, output_path, force, level):
     logger.debug(f"Logging level: {level}")
     logger.debug(f"Force: {force}")
 
-    output_path = output_path if output_path else "."
+    output = output if output else "."
     output_dirname = "_".join(os.path.basename(file_path).split(".")[0:-1]).replace(
         " ", "_"
     )
-    dirname = f"{output_path}/{output_dirname}"
+    dirname = f"{output}/{output_dirname}"
 
     logger.info(f"Output directory: {dirname}")
 
@@ -199,13 +201,25 @@ async def main(file_path, output_path, force, level):
         sys.exit(1)
         return
 
+    print("Generating audio sample...") if not quiet else None
     create_lower_quality_mp3(file_path, dirname, force)
-    await create_transcript(f"{dirname}/audio.mp3", dirname, force)
+
+    if not transcript:
+        print("Generating transcript...") if not quiet else None
+        await create_transcript(f"{dirname}/audio.mp3", dirname, force)
+    else:
+        logger.info(f"Using supplied transcript: {transcript}")
+        os.makedirs(dirname, exist_ok=True)
+        os.symlink(transcript, f"{dirname}/transcript.vtt")
+
+    print("Generating summary...") if not quiet else None
     await generate_summary(dirname, force)
 
     if has_video:
+        print("Generating snapshots...") if not quiet else None
         await create_snapshots_at_time_increments(file_path, dirname, force)
 
+    print("Creating HTML files...") if not quiet else None
     await create_index(dirname, output_dirname, force)
 
 
