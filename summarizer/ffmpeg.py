@@ -56,6 +56,7 @@ def create_lower_quality_mp3(source_file: str, dir: str, force: bool):
 
     command = [
         "ffmpeg",
+        "-y",
         "-i",
         source_file,
         "-codec:a",
@@ -99,6 +100,7 @@ def take_snapshot(video_path, start_time, snapshot_path):
     # Use FFmpeg to take a snapshot at the start time
     command = [
         "ffmpeg",
+        "-y",
         "-ss", str(time_string_to_seconds(start_time)),
         "-i", video_path,
         "-q:v", "5",
