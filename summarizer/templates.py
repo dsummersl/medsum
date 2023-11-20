@@ -136,8 +136,12 @@ HTML_TEMPLATE = """
             var audioPlayer = document.getElementById('audioPlayer');
             var source = document.getElementById('audioSource');
 
+            var isPlaying = !audioPlayer.paused;
             source.src = './audio.mp3#t=' + start;
             audioPlayer.load();
+            if (isPlaying) {
+                audioPlayer.play();
+            }
 
             highlightSummary(summaryNumber)
         }}

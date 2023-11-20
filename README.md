@@ -54,4 +54,3 @@ medsum /path/to/audio_and_video.mp4
 # Limitations
 
 - Audio currently isn't chunked to 25mb
-- Currently stops the player when you are playing and jump to another section.
