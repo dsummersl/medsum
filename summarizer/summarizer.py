@@ -1,9 +1,9 @@
 import asyncio
-import subprocess
-import shutil
 import logging
-import re
 import os
+import re
+import shutil
+import subprocess
 import sys
 from functools import wraps
 from html.parser import HTMLParser
@@ -12,12 +12,17 @@ import click
 from openai import AsyncOpenAI
 
 from .ffmpeg import create_lower_quality_mp3, file_contains_video_or_audio
-from .ffmpeg import logger as ffmpeg_logger, time_string_to_seconds
-from .ffmpeg import take_snapshot
-from .templates import HTML_TEMPLATE, SUMMARY_TEMPLATE
+from .ffmpeg import logger as ffmpeg_logger
+from .ffmpeg import take_snapshot, time_string_to_seconds
+from .templates import SUMMARY_TEMPLATE
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI()
+
+this_file = os.path.abspath(__file__)
+this_dir = os.path.dirname(this_file)
+with open(os.path.join(this_dir, "template.html"), "r") as file:
+    HTML_TEMPLATE = file.read().replace("{", "{{").replace("}", "}}").replace("[[", "{").replace("]]", "}")
 
 
 def coro(f):
@@ -79,8 +84,8 @@ async def generate_summary(dir: str, force: bool):
     count = 1
     for chunk in chunks:
         logger.info(f"Generating summary for chunk {count} of {len(chunks)}...")
-        # Create a prompt for each chunk
-        prompt = SUMMARY_TEMPLATE.format(transcript_text=chunk)
+        # TODO - Make the minimum summary minutes configurable
+        prompt = SUMMARY_TEMPLATE.format(transcript_text=chunk, minimum_summary_minutes=2)
         response = await client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}], model="gpt-3.5-turbo-16k"
         )
@@ -107,13 +112,23 @@ async def create_index(dir: str, output_path: str, force: bool):
     with open(os.path.join(dir, "transcript.vtt"), "r") as file:
         transcript = file.read()
 
+    snapshots = ""
+    if os.path.exists(os.path.join(dir, "snapshots.html")):
+        with open(os.path.join(dir, "snapshots.html"), "r") as file:
+            snapshots = file.read()
+
     logger.info("Generating index.html...")
 
     logger.info(f"Index path: {index_path}")
     if force or not os.path.exists(index_path):
         with open(index_path, "w") as file:
             file.write(
-                HTML_TEMPLATE.format(title=output_path, summary=summary, transcript=transcript)
+                HTML_TEMPLATE.format(
+                    title=output_path,
+                    summary=summary,
+                    transcript=transcript,
+                    snapshots=snapshots,
+                )
             )
     else:
         logger.info("Index already exists, skipping...")
@@ -121,7 +136,12 @@ async def create_index(dir: str, output_path: str, force: bool):
     logger.info(f"Dir HTML path: {dir_path}")
     if force or not os.path.exists(dir_path):
         with open(dir_path, "w") as file:
-            file.write(HTML_TEMPLATE.format(title=output_path, summary=summary, transcript=transcript))
+            file.write(
+                HTML_TEMPLATE.format(
+                    title=output_path, summary=summary, transcript=transcript,
+                    snapshots=snapshots
+                )
+            )
     else:
         logger.info("Dir HTML already exists, skipping...")
 
@@ -140,7 +160,7 @@ def similar_snapshots(snapshot1_path: str, snapshot2_path: str, percent: int):
     result = subprocess.run(command, capture_output=True)
     logger.debug(f"Result: {result}")
 
-    match = re.search(r'\((\d+(\.\d+)?)\)', result.stderr.decode("utf-8"))
+    match = re.search(r"\((\d+(\.\d+)?)\)", result.stderr.decode("utf-8"))
     if not match:
         return False
 
@@ -150,7 +170,9 @@ def similar_snapshots(snapshot1_path: str, snapshot2_path: str, percent: int):
     return percentage_diff > percent
 
 
-async def create_snapshots_at_time_increments(source_file: str, dir: str, force: bool, min_interval: float):
+async def create_snapshots_at_time_increments(
+    source_file: str, dir: str, force: bool, min_interval: float
+):
     """
     If the file is a video, create snapshots at the start time of each summary,
     respecting a minimum interval between snapshots.
@@ -160,11 +182,16 @@ async def create_snapshots_at_time_increments(source_file: str, dir: str, force:
     :param force: Force creation of snapshots even if they exist.
     :param min_interval: Minimum interval between snapshots in seconds.
     """
+    if not force and os.path.exists(f"{dir}/snapshots.html"):
+        logger.info("Snapshots already exists, skipping...")
+        return
+
     start_times = extract_transcript_start_times(dir)
     logger.debug("Start times: %s", start_times)
 
     previous_snapshot_time = 0
     previous_snapshot_path = None
+    snapshot_times = []
 
     for start_time in start_times:
         current_time = time_string_to_seconds(start_time)
@@ -179,15 +206,31 @@ async def create_snapshots_at_time_increments(source_file: str, dir: str, force:
 
         take_snapshot(source_file, start_time, snapshot_path)
 
-        if previous_snapshot_path and similar_snapshots(previous_snapshot_path, snapshot_path, 80):
-            logger.debug(f"Snapshot for {start_time} is similar to previous snapshot, removing...")
+        if previous_snapshot_path and similar_snapshots(
+            previous_snapshot_path, snapshot_path, 80
+        ):
+            logger.debug(
+                f"Snapshot for {start_time} is similar to previous snapshot, removing..."
+            )
             os.remove(snapshot_path)
             # Update the previous snapshot time to the current time (since its similar to the current snapshot)
             previous_snapshot_time = current_time
             continue
 
+        snapshot_times.append(start_time)
         previous_snapshot_time = current_time
         previous_snapshot_path = snapshot_path
+
+    logger.info("Saving snapshots to file...")
+    with open(os.path.join(dir, "snapshots.html"), "w") as file:
+        file.write(
+            "\n".join(
+                [
+                    f"<img data-start='{start}' src='{start.replace(':', '_') + '.jpg'}'>"
+                    for start in snapshot_times
+                ]
+            )
+        )
 
 
 class SummaryHTMLParser(HTMLParser):
@@ -206,7 +249,7 @@ def extract_summary_start_times(dir: str):
     summary_path = os.path.join(dir, "summary.html")
 
     parser = SummaryHTMLParser()
-    with open(summary_path, 'r') as file:
+    with open(summary_path, "r") as file:
         parser.feed(file.read())
     return parser.start_times
 
@@ -221,8 +264,10 @@ def extract_transcript_start_times(dir: str):
     vtt_path = os.path.join(dir, "transcript.vtt")
 
     start_times = []
-    time_pattern = re.compile(r'^(\d{2}:\d{2}:\d{2}).\d{3} --> \d{2}:\d{2}:\d{2}.\d{3}$')
-    with open(vtt_path, 'r') as file:
+    time_pattern = re.compile(
+        r"^(\d{2}:\d{2}:\d{2}).\d{3} --> \d{2}:\d{2}:\d{2}.\d{3}$"
+    )
+    with open(vtt_path, "r") as file:
         for line in file:
             match = time_pattern.search(line)
             if match:
@@ -232,18 +277,32 @@ def extract_transcript_start_times(dir: str):
 
 @click.command()
 @click.argument("file_path")
-@click.option("--transcript", "-t", type=click.Path(exists=True), help="Path to supplied transcript (if supplied, medsum won't generate one)")
-@click.option("--output", "-o", default=None, help="Where to drop the output files")
-@click.option("--force/--no-force", "-f", default=False, help="Overwrite any existing files")
-@click.option("--quiet", "-q", default=False, help="Suppress printing activities")
-@click.option("--snapshot-min-interval", default=10, help="Minimum interval between snapshots in seconds")
 @click.option(
-    "--level", "-l",
+    "--transcript",
+    "-t",
+    type=click.Path(exists=True),
+    help="Path to supplied transcript (if supplied, medsum won't generate one)",
+)
+@click.option("--output", "-o", default=None, help="Where to drop the output files")
+@click.option(
+    "--force/--no-force", "-f", default=False, help="Overwrite any existing files"
+)
+@click.option("--quiet", "-q", default=False, help="Suppress printing activities")
+@click.option(
+    "--snapshot-min-interval",
+    default=15,
+    help="Minimum interval between snapshots in seconds",
+)
+@click.option(
+    "--level",
+    "-l",
     default="WARNING",
     help="Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)",
 )
 @coro
-async def main(transcript, file_path, output, force, quiet, level, snapshot_min_interval):
+async def main(
+    transcript, file_path, output, force, quiet, level, snapshot_min_interval
+):
     logging.basicConfig(level=level)
     logger.setLevel(level)
     ffmpeg_logger.setLevel(level)
@@ -262,26 +321,27 @@ async def main(transcript, file_path, output, force, quiet, level, snapshot_min_
     has_video, has_audio = file_contains_video_or_audio(file_path)
     if not has_audio:
         logger.error("File does not contain audio, exiting...")
-        sys.exit(1)
-        return
+        return sys.exit(1)
 
-    # print("Generating audio sample...") if not quiet else None
-    # create_lower_quality_mp3(file_path, dirname, force)
-    #
-    # if not transcript:
-    #     print("Generating transcript...") if not quiet else None
-    #     await create_transcript(f"{dirname}/audio.mp3", dirname, force)
-    # if not force and os.path.exists(f"{dir}/transcript.vtt"):
-    #     logger.info(f"Using supplied transcript: {transcript}")
-    #     os.makedirs(dirname, exist_ok=True)
-    #     shutil.copy(transcript, f"{dirname}/transcript.vtt")
-    #
-    # print("Generating summary...") if not quiet else None
-    # await generate_summary(dirname, force)
+    print("Generating audio sample...") if not quiet else None
+    create_lower_quality_mp3(file_path, dirname, force)
+
+    if not transcript:
+        print("Generating transcript...") if not quiet else None
+        await create_transcript(f"{dirname}/audio.mp3", dirname, force)
+    if not force and os.path.exists(f"{dir}/transcript.vtt"):
+        logger.info(f"Using supplied transcript: {transcript}")
+        os.makedirs(dirname, exist_ok=True)
+        shutil.copy(transcript, f"{dirname}/transcript.vtt")
+
+    print("Generating summary...") if not quiet else None
+    await generate_summary(dirname, force)
 
     if has_video:
         print("Generating snapshots...") if not quiet else None
-        await create_snapshots_at_time_increments(file_path, dirname, force, snapshot_min_interval)
+        await create_snapshots_at_time_increments(
+            file_path, dirname, force, snapshot_min_interval
+        )
 
     print("Creating HTML files...") if not quiet else None
     await create_index(dirname, output_dirname, force)
