@@ -1,4 +1,5 @@
 import asyncio
+import shutil
 import logging
 import os
 import sys
@@ -207,10 +208,10 @@ async def main(transcript, file_path, output, force, quiet, level):
     if not transcript:
         print("Generating transcript...") if not quiet else None
         await create_transcript(f"{dirname}/audio.mp3", dirname, force)
-    else:
+    if not force and os.path.exists(f"{dir}/transcript.vtt"):
         logger.info(f"Using supplied transcript: {transcript}")
         os.makedirs(dirname, exist_ok=True)
-        os.symlink(transcript, f"{dirname}/transcript.vtt")
+        shutil.copy(transcript, f"{dirname}/transcript.vtt")
 
     print("Generating summary...") if not quiet else None
     await generate_summary(dirname, force)

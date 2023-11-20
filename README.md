@@ -42,11 +42,16 @@ medsum /path/to/audio_and_video.mp4
 # More Ideas
 
 - Surface the transcript.vtt in some way.
+- Make the transcript and summary searchable (maybe semantically, even).
 - Let the user supply a transcript file (save $ when possible)
 - Adding an option to specify the minimum interval to capture images from
     videos. Possibly filtering out adjacent snapshots that are identical or 90%
     so.
+- Have some basic player options - automatically play when you click on a
+    section, show the snapshots hover and automatically transition to them if the
+    player is playing.
 
 # Limitations
 
 - Audio currently isn't chunked to 25mb
+- Currently stops the player when you are playing and jump to another section.
