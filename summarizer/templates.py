@@ -13,16 +13,50 @@ HTML_TEMPLATE = """
             text-align: center;
         }}
 
+        .header {{
+            text-align: center;
+            margin-bottom: 10px;
+        }}
+
+        .search-container {{
+            display: flex;
+            align-items: center;
+            justify-content: white-between;
+            margin-bottom: 20px;
+        }}
+
+        .search-container input[type="text"] {{
+            flex-grow: 1;
+            margin-right: 10px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-left: 20px;
+        }}
+
+        .icon {{
+            cursor: pointer;
+            padding: 5px;
+            margin-left: 5px;
+            margin-right: 20px;
+        }}
+
         .container {{
             flex: 1;
             overflow-y: auto;
             padding: 20px;
         }}
 
+        .main-container {{
+            display: flex;
+        }}
+
         .summary-container {{
+            flex: 1 1 66%;
         }}
 
         .vtt-container {{
+            flex: 1 1 33%;
             white-space: pre-wrap; /* To preserve formatting of VTT file */
             display: none;
         }}
@@ -34,7 +68,15 @@ HTML_TEMPLATE = """
             transform: translateX(-50%);
         }}
 
-        div[data-start] {{
+        .vtt-container div {{
+            font: 10px Arial, monospace;
+        }}
+
+        .vtt-container div[data-start] {{
+            margin-top: 10px;
+        }}
+
+        .summary-container div[data-start] {{
             display: flex;
             align-items: center;
             margin-bottom: 10px;
@@ -44,20 +86,20 @@ HTML_TEMPLATE = """
             transition: background-color 0.3s ease;
         }}
 
-        div[data-start] img {{
+        .summary-container div[data-start] img {{
             flex: 1 1 33%; /* 1/3 of the container's width */
             max-width: 200px;
             height: auto;
             margin-left: auto; /* Aligns the image to the right */
         }}
 
-        div[data-start] > * {{
+        .summary-container div[data-start] > * {{
             flex: 2 1 66%; /* 2/3 of the container's width */
             margin-right: 10px;
         }}
 
-          div[data-start]:hover,
-        div[data-start].highlight {{
+        .summary-container div[data-start]:hover,
+        .summary-container div[data-start].highlight {{
             background-color: #f0f0f0;
         }}
 
@@ -132,16 +174,16 @@ HTML_TEMPLATE = """
             return minutes + '_' + seconds + '.jpg';
         }}
 
-        function playSegment(start, summaryNumber) {{
+        function setAudioPlayerOffset(start, summaryNumber) {{
             var audioPlayer = document.getElementById('audioPlayer');
             var source = document.getElementById('audioSource');
 
             var isPlaying = !audioPlayer.paused;
             source.src = './audio.mp3#t=' + start;
             audioPlayer.load();
-            if (isPlaying) {
+            if (isPlaying) {{
                 audioPlayer.play();
-            }
+            }}
 
             highlightSummary(summaryNumber)
         }}
@@ -157,12 +199,15 @@ HTML_TEMPLATE = """
             }});
         }}
 
-
         function updateHighlightBasedOnTime() {{
-            var audioPlayer = document.getElementById('audioPlayer');
-            var currentTime = audioPlayer.currentTime; // Current playback time in seconds
+            // TODO we have a bug here where the source.src = above is firing an
+            // event with currentTime = 0 and then a real timer, leading to a
+            // flicker on the screen.
 
-            var summaries = document.querySelectorAll('.summary-container div[data-start]');
+            var audioPlayer = document.getElementById('audioPlayer');
+            var currentTime = audioPlayer.currentTime;
+
+            var summaries = document.querySelectorAll('.summary-container div[data-start], .vtt-container div[data-start]');
             summaries.forEach(function(div) {{
                 var startTime = timeStringToSeconds(div.getAttribute('data-start'));
                 var endTime = timeStringToSeconds(div.getAttribute('data-end'));
@@ -174,6 +219,26 @@ HTML_TEMPLATE = """
                 }}
             }});
         }}
+
+        function preprocessVTTContent() {{
+            var vttContainer = document.querySelector('.vtt-container');
+            var lines = vttContainer.textContent.split('\\n');
+            var processedHTML = '';
+
+            lines.forEach(function(line) {{
+                if (line.includes('-->')) {{
+                    var times = line.split('-->');
+                    var start = times[0].trim();
+                    var end = times[1].trim();
+                    processedHTML += `<div data-start="${{start}}" data-end="${{end}}">${{line}}</div>`;
+                }} else {{
+                    processedHTML += `<div>${{line}}</div>`;
+                }}
+            }});
+
+            vttContainer.innerHTML = processedHTML;
+        }}
+
 
         function timeStringToSeconds(timeString) {{
             var parts = timeString.split(':'); // Split at the colons
@@ -192,27 +257,41 @@ HTML_TEMPLATE = """
             return hours * 3600 + minutes * 60 + seconds;
         }}
 
-        function setupEventListeners() {{
+        function toggleAllTranscripts() {{
+          var transcripts = document.querySelector(".vtt-container");
+          transcripts.style.display = transcripts.style.display === "block" ? "none" : "block";
+        }}
+
+        document.addEventListener('DOMContentLoaded', function() {{
             var summaryDivs = document.querySelectorAll('div[data-start]');
             summaryDivs.forEach(function(div) {{
                 div.addEventListener('click', function() {{
                   var start = this.getAttribute('data-start');
                   var summaryNumber = this.getAttribute('data-start');
-                  playSegment(start, summaryNumber);
+                  setAudioPlayerOffset(start, summaryNumber);
                 }});
             }});
 
             var audioPlayer = document.getElementById('audioPlayer');
             audioPlayer.addEventListener('timeupdate', updateHighlightBasedOnTime);
 
-            insertImages();
-        }}
+            document.getElementById('toggleTranscript').addEventListener('click', toggleAllTranscripts);
 
-        window.onload = setupEventListeners;
+            insertImages();
+            preprocessVTTContent();
+            }});
     </script>
 </head>
 <body>
-    <h1>{title}</h1>
+    <div class="header">
+        <h1>{title}</h1>
+        <div class="search-container">
+            <input type="text" placeholder="Search...">
+            <div class="icon">🔍</div>
+            <div class="icon" id="toggleTranscript">📄</div>
+        </div>
+    </div>
+
     <div class="audio-container">
         <audio id="audioPlayer" controls>
             <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
@@ -220,12 +299,14 @@ HTML_TEMPLATE = """
         </audio>
     </div>
 
-    <div class="container summary-container">
-    {summary}
-    </div>
+    <div class="main-container">
+        <div class="container summary-container">
+        {summary}
+        </div>
 
-    <div class="container vtt-container">
-    {transcript}
+        <pre class="container vtt-container">
+        {transcript}
+        </pre>
     </div>
 
     <img class="zoomed-img" src="" alt="">
