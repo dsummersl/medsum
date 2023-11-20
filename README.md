@@ -41,13 +41,15 @@ medsum /path/to/audio_and_video.mp4
 
 # More Ideas
 
-- Make the transcript and summary searchable (maybe semantically, even).
+- Make the transcript and summary filterable (maybe semantically, even).
 - Adding an option to specify the minimum interval to capture images from
     videos. Possibly filtering out adjacent snapshots that are identical or 90%
     so.
 - Have some basic player options - automatically play when you click on a
     section, show the snapshots hover and automatically transition to them if the
     player is playing.
+- Add some icons to quickly copy the summaries (mouseover).
+- Add an option to refine the prompt instructions.
 
 # Limitations
 
