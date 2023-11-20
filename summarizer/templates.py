@@ -18,27 +18,18 @@ HTML_TEMPLATE = """
             margin-bottom: 10px;
         }}
 
-        .search-container {{
-            display: flex;
-            align-items: center;
-            justify-content: white-between;
-            margin-bottom: 20px;
-        }}
-
-        .search-container input[type="text"] {{
-            flex-grow: 1;
-            margin-right: 10px;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-left: 20px;
-        }}
-
         .icon {{
             cursor: pointer;
             padding: 5px;
             margin-left: 5px;
             margin-right: 20px;
+            user-select: none;
+        }}
+
+        #toggleTranscript {{
+            position: absolute;
+            top: 10px;
+            right: 20px;
         }}
 
         .container {{
@@ -286,9 +277,7 @@ HTML_TEMPLATE = """
     <div class="header">
         <h1>{title}</h1>
         <div class="search-container">
-            <input type="text" placeholder="Search...">
-            <div class="icon">🔍</div>
-            <div class="icon" id="toggleTranscript">📄</div>
+            <div class="icon" alt="Show transcript" id="toggleTranscript">📄</div>
         </div>
     </div>
 
