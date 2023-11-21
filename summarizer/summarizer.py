@@ -55,7 +55,7 @@ async def create_transcript(media_path: str, dir: str, force: bool):
     logger.info("Transcript saved!")
 
 
-async def generate_summary(dir: str, force: bool):
+async def generate_summary(dir: str, force: bool, minimum_summary_minutes: int):
     """Use openai to summarize the VTT formatted transcript, and save it to 'dir/summary.html'"""
     transcript_path = os.path.join(dir, "transcript.vtt")
     summary_path = os.path.join(dir, "summary.html")
@@ -84,8 +84,7 @@ async def generate_summary(dir: str, force: bool):
     count = 1
     for chunk in chunks:
         logger.info(f"Generating summary for chunk {count} of {len(chunks)}...")
-        # TODO - Make the minimum summary minutes configurable
-        prompt = SUMMARY_TEMPLATE.format(transcript_text=chunk, minimum_summary_minutes=2)
+        prompt = SUMMARY_TEMPLATE.format(transcript_text=chunk, minimum_summary_minutes=minimum_summary_minutes)
         response = await client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}], model="gpt-3.5-turbo-16k"
         )
@@ -289,9 +288,14 @@ def extract_transcript_start_times(dir: str):
 )
 @click.option("--quiet", "-q", default=False, help="Suppress printing activities")
 @click.option(
-    "--snapshot-min-interval",
+    "--snapshot-min-secs",
     default=15,
-    help="Minimum interval between snapshots in seconds",
+    help="Minimum interval between video snapshots in seconds (default: 15)",
+)
+@click.option(
+    "--summary-min-mins",
+    default=2,
+    help="When summarizing, minimum number of minutes in each summary (default: 2)",
 )
 @click.option(
     "--level",
@@ -301,7 +305,7 @@ def extract_transcript_start_times(dir: str):
 )
 @coro
 async def main(
-    transcript, file_path, output, force, quiet, level, snapshot_min_interval
+    transcript, file_path, output, force, quiet, level, summary_min_mins, snapshot_min_secs
 ):
     logging.basicConfig(level=level)
     logger.setLevel(level)
@@ -326,21 +330,21 @@ async def main(
     print("Generating audio sample...") if not quiet else None
     create_lower_quality_mp3(file_path, dirname, force)
 
-    if not transcript:
-        print("Generating transcript...") if not quiet else None
-        await create_transcript(f"{dirname}/audio.mp3", dirname, force)
-    if not force and os.path.exists(f"{dir}/transcript.vtt"):
+    if transcript:
         logger.info(f"Using supplied transcript: {transcript}")
         os.makedirs(dirname, exist_ok=True)
         shutil.copy(transcript, f"{dirname}/transcript.vtt")
+    if force or not os.path.exists(f"{dir}/transcript.vtt"):
+        print("Generating transcript...") if not quiet else None
+        await create_transcript(f"{dirname}/audio.mp3", dirname, force)
 
     print("Generating summary...") if not quiet else None
-    await generate_summary(dirname, force)
+    await generate_summary(dirname, force, summary_min_mins)
 
     if has_video:
         print("Generating snapshots...") if not quiet else None
         await create_snapshots_at_time_increments(
-            file_path, dirname, force, snapshot_min_interval
+            file_path, dirname, force, snapshot_min_secs
         )
 
     print("Creating HTML files...") if not quiet else None
