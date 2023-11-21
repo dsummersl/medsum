@@ -7,28 +7,27 @@ Please create a list that summarizes the topics discussed and parties involved i
 - Capture topics briefly, focusing only on key points or issues.
 - Key points are those frequently mentioned in the discussion, or key decisions that were made.
 - Include names of people, places, or times that are mentioned in the transcript, or can be inferred from the context.
-- Ensure that the summaries are contiguous; the end time of one summary should be the start time of the next.
 - Highlight topics, key points, and people, places, and times with a <mark> tag.
 
 Format the output as follows:
-<div data-start="[hour]:[minute]:[second]" data-end="[hour]:[minute]:[second]">
-  <b>[hour]:[minute]:[second] - [hour]:[minute]:[second]</b>
+<div data-start="[hour]:[minute]:[second]">
+  <b>[hour]:[minute]:[second]</b>
   <ul>
     <li>[Summary entry]</li>
   </ul>
 </div>
 
 Example:
-<div data-start="00:03:15" data-end="00:05:05">
-  <b>00:03:15 - 00:05:05</b>
+<div data-start="00:03:15">
+  <b>00:03:15</b>
   <ul>
     <li>
       Started the agenda: <b>vacation planning</b>, <b>action items</b>.
     </li>
   </ul>
 </div>
-<div data-start="00:05:05" data-end="00:08:13">
-  <b>00:05:05 - 00:08:13</b>
+<div data-start="00:05:05">
+  <b>00:05:05</b>
   <ul>
     <li>Started talking about <b>vacation planning</b>.</li>
     <li>
@@ -38,8 +37,8 @@ Example:
     <li><mark>Decided to bring a tent, and personal items</mark>.</li>
   </ul>
 </div>
-<div data-start="00:08:13" data-end="00:10:15">
-  <b>00:08:13 - 00:10:15</b>
+<div data-start="00:08:13">
+  <b>00:08:13</b>
   <ul>
     <li>Started talking about <b>action items</b></li>
     <li>
