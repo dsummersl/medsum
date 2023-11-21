@@ -50,6 +50,7 @@ medsum /path/to/audio_and_video.mp4
     player is playing.
 - Add some icons to quickly copy the summaries (mouseover).
 - Add an option to refine the prompt instructions.
+- Add a timestamp option to the HTML so you can jump to a specific spot (or bookmark)
 
 # Limitations
 

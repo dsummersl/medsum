@@ -55,7 +55,7 @@ async def create_transcript(media_path: str, dir: str, force: bool):
     logger.info("Transcript saved!")
 
 
-async def generate_summary(dir: str, force: bool, minimum_summary_minutes: int):
+async def generate_summary(dir: str, force: bool, quiet: bool, minimum_summary_minutes: int):
     """Use openai to summarize the VTT formatted transcript, and save it to 'dir/summary.html'"""
     transcript_path = os.path.join(dir, "transcript.vtt")
     summary_path = os.path.join(dir, "summary.html")
@@ -70,7 +70,7 @@ async def generate_summary(dir: str, force: bool, minimum_summary_minutes: int):
     logger.info("Generating summary...")
 
     # Chunk size (number of characters times the estimated characters per token)
-    chunk_size = 16000 * 2
+    chunk_size = 12000 * 2
 
     # Split the transcript text into chunks
     chunks = [
@@ -84,6 +84,7 @@ async def generate_summary(dir: str, force: bool, minimum_summary_minutes: int):
     count = 1
     for chunk in chunks:
         logger.info(f"Generating summary for chunk {count} of {len(chunks)}...")
+        print(f"Generating summary for chunk {count} of {len(chunks)}...") if not quiet else None
         prompt = SUMMARY_TEMPLATE.format(transcript_text=chunk, minimum_summary_minutes=minimum_summary_minutes)
         response = await client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}], model="gpt-3.5-turbo-16k"
@@ -339,7 +340,7 @@ async def main(
         await create_transcript(f"{dirname}/audio.mp3", dirname, force)
 
     print("Generating summary...") if not quiet else None
-    await generate_summary(dirname, force, summary_min_mins)
+    await generate_summary(dirname, force, quiet, summary_min_mins)
 
     if has_video:
         print("Generating snapshots...") if not quiet else None
