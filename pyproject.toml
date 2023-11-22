@@ -6,14 +6,14 @@ authors = ["Dane Summers <dsummersl@yahoo.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.11.4"
+python = "3.11.6"
 click = "^8.1.7"
 pydub = "^0.25.1"
 openai = "^1.3.0"
 markdown2 = "^2.4.10"
 
 [tool.poetry.scripts]
-medsum = "summarizer.summarizer:main"
+medsum = "summarizer.summarizer:cli"
 
 [build-system]
 requires = ["poetry-core"]

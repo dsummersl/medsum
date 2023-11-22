@@ -83,7 +83,6 @@ async def generate_summary(dir: str, force: bool, quiet: bool, minimum_summary_m
 
     count = 1
     for chunk in chunks:
-        logger.info(f"Generating summary for chunk {count} of {len(chunks)}...")
         print(f"Generating summary for chunk {count} of {len(chunks)}...") if not quiet else None
         prompt = SUMMARY_TEMPLATE.format(transcript_text=chunk, minimum_summary_minutes=minimum_summary_minutes)
         response = await client.chat.completions.create(
@@ -91,6 +90,7 @@ async def generate_summary(dir: str, force: bool, quiet: bool, minimum_summary_m
         )
         # Append the summary of the chunk to the summaries list
         summaries.append(response.choices[0].message.content.strip())
+        count += 1
 
     logger.info("Joining summaries, and saving...")
     # Combine all summaries into one
@@ -207,7 +207,7 @@ async def create_snapshots_at_time_increments(
         take_snapshot(source_file, start_time, snapshot_path)
 
         if previous_snapshot_path and similar_snapshots(
-            previous_snapshot_path, snapshot_path, 80
+            previous_snapshot_path, snapshot_path, 90
         ):
             logger.debug(
                 f"Snapshot for {start_time} is similar to previous snapshot, removing..."
@@ -275,6 +275,26 @@ def extract_transcript_start_times(dir: str):
     return start_times
 
 
+async def update_index(summary_path, force, quiet):
+    print("Creating HTML files...") if not quiet else None
+    last_dir = os.path.basename(os.path.dirname(summary_path))
+    await create_index(summary_path, last_dir, force)
+
+
+@click.group()
+def cli():
+    pass
+
+
+@click.command("update-index")
+@click.argument("summary_path")
+@click.option("--quiet", "-q", default=False, help="Suppress printing activities")
+@coro
+async def update_index_cli(summary_path, quiet):
+    """ Regenerate the index.html and dir-name.html files in the directory """
+    await update_index(summary_path, True, quiet)
+
+
 @click.command()
 @click.argument("file_path")
 @click.option(
@@ -290,8 +310,8 @@ def extract_transcript_start_times(dir: str):
 @click.option("--quiet", "-q", default=False, help="Suppress printing activities")
 @click.option(
     "--snapshot-min-secs",
-    default=15,
-    help="Minimum interval between video snapshots in seconds (default: 15)",
+    default=10,
+    help="Minimum interval between video snapshots in seconds (default: 10)",
 )
 @click.option(
     "--summary-min-mins",
@@ -305,9 +325,10 @@ def extract_transcript_start_times(dir: str):
     help="Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)",
 )
 @coro
-async def main(
+async def summarize(
     transcript, file_path, output, force, quiet, level, summary_min_mins, snapshot_min_secs
 ):
+    """ Summarize a video or audio file """
     logging.basicConfig(level=level)
     logger.setLevel(level)
     ffmpeg_logger.setLevel(level)
@@ -348,9 +369,12 @@ async def main(
             file_path, dirname, force, snapshot_min_secs
         )
 
-    print("Creating HTML files...") if not quiet else None
-    await create_index(dirname, output_dirname, force)
+    await update_index(output_dirname, force, quiet)
+
+
+cli.add_command(summarize)
+cli.add_command(update_index_cli)
 
 
 if __name__ == "__main__":
-    main()
+    cli()
