@@ -3,6 +3,8 @@ import os
 import subprocess
 import json
 
+from .vtt import time_string_to_seconds
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,7 +23,7 @@ def file_contains_video_or_audio(file_path):
         file_path
     ]
 
-    logger.info(f"Running command: {' '.join(command)}")
+    logger.debug(f"Running command: {' '.join(command)}")
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     output = result.stdout
 
@@ -65,7 +67,7 @@ def create_lower_quality_mp3(source_file: str, dir: str, force: bool):
         "9",
         output_file,
     ]
-    logger.info(f"Running command: {' '.join(command)}")
+    logger.debug(f"Running command: {' '.join(command)}")
     suppress_output = not logger.isEnabledFor(logging.DEBUG)
     subprocess.run(
         command,
@@ -73,27 +75,6 @@ def create_lower_quality_mp3(source_file: str, dir: str, force: bool):
         stderr=subprocess.DEVNULL if suppress_output else None,
         check=True
     )
-
-
-def time_string_to_seconds(time_string):
-    """
-    Converts a time string in "hh:mm" or "hh:mm:ss.ddd" format to seconds.
-
-    :param time_string: String representing the time.
-    :return: Time in seconds as a float.
-    """
-    parts = time_string.split(':')
-
-    if len(parts) == 2:  # hh:mm format
-        hours, minutes = parts
-        seconds = 0
-    elif len(parts) == 3:  # hh:mm:ss.ddd format
-        hours, minutes, sec_part = parts
-        seconds = sec_part.partition('.')[0]
-    else:
-        raise ValueError("Invalid time format")
-
-    return int(hours) * 3600 + int(minutes) * 60 + int(seconds)
 
 
 def take_snapshot(video_path, start_time, snapshot_path):
@@ -107,7 +88,7 @@ def take_snapshot(video_path, start_time, snapshot_path):
         "-frames:v", "1",
         snapshot_path
     ]
-    logger.info(f"Running command: {' '.join(command)}")
+    logger.debug(f"Running command: {' '.join(command)}")
     suppress_output = not logger.isEnabledFor(logging.DEBUG)
     subprocess.run(
         command,
