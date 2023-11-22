@@ -6,7 +6,7 @@
   <style>
     body {
       margin: 20px;
-      font-family: Arial, sans-serif;
+      font-family: Arial, sans serif;
     }
 
     h1 {
@@ -18,18 +18,20 @@
       margin-bottom: 10px;
     }
 
-    .icon {
+    .icon-container {
       cursor: pointer;
       padding: 5px;
       margin-left: 5px;
       margin-right: 20px;
       user-select: none;
-    }
-
-    #toggleTranscript {
       position: absolute;
       top: 10px;
       right: 20px;
+    }
+
+    .icon {
+      user-select: none;
+      cursor: pointer;
     }
 
     .container {
@@ -339,10 +341,12 @@
       return hours * 3600 + minutes * 60 + seconds;
     }
 
-    function toggleAllTranscripts() {
-      let transcripts = document.querySelector(".vtt-container");
-      transcripts.style.display =
-        transcripts.style.display === "block" ? "none" : "block";
+    function toggleContainer(container) {
+      let containers = document.querySelectorAll(container);
+      Array.from(containers).forEach(function (container) {
+        container.style.display =
+          container.style.display === "block" ? "none" : "block";
+      });
     }
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -359,7 +363,12 @@
 
       document
         .getElementById("toggleTranscript")
-        .addEventListener("click", toggleAllTranscripts);
+        .addEventListener("click", () => toggleContainer(".vtt-container"));
+
+      document
+        .getElementById("toggleImages")
+        .addEventListener("click", () => toggleContainer(".img-content"));
+
 
       insertImages();
       preprocessVTTContent();
@@ -370,8 +379,9 @@
 <body>
   <div class="header">
     <h1>[[title]]</h1>
-    <div class="search-container">
+    <div class="icon-container">
       <div class="icon" alt="Show transcript" id="toggleTranscript">📄</div>
+      <div class="icon" alt="Toggle images" id="toggleImages">🖼️</div>
     </div>
   </div>
 

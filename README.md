@@ -1,13 +1,15 @@
-# Media Summarizer
+# TLDL
 
-Media Summarizer is a simple CLI tool for summarizing text from audio and video files. It uses FFmpeg for processing media files and OpenAI's GPT models for generating summaries.
+_too * long * didn't * listen_ : keep the cliff notes, ditch the giant media files.
+
+A CLI tool that summarizes audio and video files. It uses FFmpeg for processing media files and OpenAI's GPT models for generating summaries.
 
 ## Features
 
 - Extracts compressed audio from a source media file.
 - Transcribes the audio file
 - Generates a summary of the transcription
-- Creates snapshots from video files at specified timestamps.
+- Creates snapshots for video files at key moments.
 - Packages it all up in a pretty HTML viewer 🌟.
 
 ## Development
@@ -27,7 +29,7 @@ poetry install
 To use Media Summarizer, run the following command:
 
 ```bash
-medsum [OPTIONS] SOURCE_FILE
+tldl [OPTIONS] SOURCE_FILE
 ```
 
 ### Examples
@@ -35,20 +37,22 @@ medsum [OPTIONS] SOURCE_FILE
 Summarize an audio file:
 
 ```bash
-medsum /path/to/audio.mp3
-medsum /path/to/audio_and_video.mp4
+tldl summarize /path/to/audio.mp3
+tldl summarize /path/to/audio_and_video.mp4
+```
+
+Don't like the summary? - tweak the summary/remove images and rerun:
+
+```sh
+tldl update-index /path/to/summary-directory
 ```
 
 # More Ideas
 
 - Make the transcript and summary filterable (maybe semantically, even).
-- Adding an option to specify the minimum interval to capture images from
-    videos. Possibly filtering out adjacent snapshots that are identical or 90%
-    so.
 - Have some basic player options - automatically play when you click on a
     section, show the snapshots hover and automatically transition to them if the
     player is playing.
-- Add some icons to quickly copy the summaries (mouseover).
 - Add an option to refine the prompt instructions.
 - Add a timestamp option to the HTML so you can jump to a specific spot (or bookmark)
 
