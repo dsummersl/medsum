@@ -14,7 +14,7 @@ def similar_snapshots(snapshot1_path: str, snapshot2_path: str, percent: int):
     command = [
         "compare",
         "-metric",
-        "MAE",
+        "DSSIM",
         snapshot1_path,
         snapshot2_path,
         "/dev/null",
@@ -23,11 +23,7 @@ def similar_snapshots(snapshot1_path: str, snapshot2_path: str, percent: int):
     result = subprocess.run(command, capture_output=True)
     logger.debug(f"Result: {result}")
 
-    match = re.search(r"\((\d+(\.\d+)?)\)", result.stderr.decode("utf-8"))
-    if not match:
-        return False
-
-    normalized_mean_error = float(match.group(1))
+    normalized_mean_error = float(result.stderr)
     percentage_diff = (1 - normalized_mean_error) * 100
 
     return percentage_diff > percent

@@ -196,7 +196,7 @@ async def update_index(
     force_summary,
     quiet,
 ):
-    print("Creating HTML files...") if not quiet else None
+    print("Creating transcript...") if not quiet else None
     if transcript:
         logger.info(f"Using supplied transcript: {transcript}")
         os.makedirs(dirname, exist_ok=True)
@@ -276,6 +276,7 @@ async def update_index_cli(summary_path, snapshot_min_secs, summary_min_mins, qu
     help="Path to supplied transcript (if supplied, medsum won't generate one)",
 )
 @click.option("--output", "-o", default=None, help="Where to drop the output files")
+@click.option("--open/--no-open", "-p", default=False, help="Open the index.html file in a browser")
 @click.option(
     "--force/--no-force", "-f", default=False, help="Overwrite any existing files"
 )
@@ -301,6 +302,7 @@ async def summarize(
     transcript,
     file_path,
     output,
+    open,
     force,
     quiet,
     level,
@@ -326,8 +328,11 @@ async def summarize(
 
     has_video, has_audio = file_contains_video_or_audio(file_path)
     if not has_audio:
-        logger.error("File does not contain audio, exiting...")
+        print("File does not contain audio, exiting...") if not quiet else None
         return sys.exit(1)
+
+    logger.debug(f"Has video: {has_video}")
+    logger.debug(f"Has audio: {has_audio}")
 
     print("Generating audio sample...") if not quiet else None
     create_lower_quality_mp3(file_path, dirname, force)
@@ -343,6 +348,10 @@ async def summarize(
         force,
         quiet,
     )
+
+    if open:
+        logger.info("Opening index.html in browser...")
+        subprocess.Popen(["open", f"{dirname}/index.html"])
 
 
 cli.add_command(summarize)
