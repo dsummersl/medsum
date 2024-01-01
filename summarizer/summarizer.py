@@ -280,6 +280,9 @@ async def update_index_cli(summary_path, snapshot_min_secs, summary_min_mins, qu
 @click.option(
     "--force/--no-force", "-f", default=False, help="Overwrite any existing files"
 )
+@click.option(
+    "--snapshots/--no-snapshots", default=True, help="Create snapshots if possible"
+)
 @click.option("--quiet", "-q", default=False, help="Suppress printing activities")
 @click.option(
     "--snapshot-min-secs",
@@ -308,6 +311,7 @@ async def summarize(
     level,
     summary_min_mins,
     snapshot_min_secs,
+    snapshots,
 ):
     """Summarize a video or audio file"""
     logging.basicConfig(level=level)
@@ -343,7 +347,7 @@ async def summarize(
         transcript,
         summary_min_mins,
         snapshot_min_secs,
-        has_video,
+        has_video and snapshots,
         force,
         force,
         quiet,

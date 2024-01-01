@@ -78,6 +78,7 @@ tldl update-index /path/to/summary-directory
 - Add a timestamp option to the HTML so you can jump to a specific spot (or bookmark)
 - Add an option to ignore video on video files.
 - Add a summary of the summary to the top of the HTML report.
+- Make formal metadata files so that presentation is cleanly separated from UX.
 
 # Limitations
 
