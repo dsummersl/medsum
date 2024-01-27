@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -9,16 +8,14 @@ from functools import wraps
 from html.parser import HTMLParser
 
 import click
-from openai import AsyncOpenAI
 
 from .ffmpeg import create_lower_quality_mp3, file_contains_video_or_audio
 from .ffmpeg import logger as ffmpeg_logger
-from .ffmpeg import take_snapshot, time_string_to_seconds
 from .templates import SUMMARY_TEMPLATE
 from .snapshots import create_snapshots_at_time_increments, create_snapshots_file, logger as snapshots_logger
+from .llm import create_transcript, chat
 
 logger = logging.getLogger(__name__)
-client = AsyncOpenAI()
 
 this_file = os.path.abspath(__file__)
 this_dir = os.path.dirname(this_file)
@@ -38,28 +35,6 @@ def coro(f):
         return asyncio.run(f(*args, **kwargs))
 
     return wrapper
-
-
-async def create_transcript(media_path: str, dir: str, force: bool):
-    """Use openai speech-to-text to extract audio, and save it to 'dir/transcript.vtt'"""
-    if not force and os.path.exists(f"{dir}/transcript.vtt"):
-        logger.info("Transcript already exists, skipping...")
-        return
-
-    with open(media_path, "rb") as f:
-        logger.info("Transcribing audio...")
-        transcript = await client.audio.transcriptions.create(
-            file=f, model="whisper-1", response_format="vtt"
-        )
-        logger.info("Transcription complete!")
-
-    #  Save the transcription to 'dir/transcript.md'
-    logger.info("Saving transcript...")
-    os.makedirs(dir, exist_ok=True)
-
-    with open(f"{dir}/transcript.vtt", "w") as f:
-        f.write(transcript)
-    logger.info("Transcript saved!")
 
 
 async def generate_summary(
@@ -98,9 +73,7 @@ async def generate_summary(
         prompt = SUMMARY_TEMPLATE.format(
             transcript_text=chunk, minimum_summary_minutes=minimum_summary_minutes
         )
-        response = await client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}], model="gpt-3.5-turbo-16k"
-        )
+        response = await chat(prompt)
         # Append the summary of the chunk to the summaries list
         summaries.append(response.choices[0].message.content.strip())
         count += 1
