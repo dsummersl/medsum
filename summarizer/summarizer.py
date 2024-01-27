@@ -286,7 +286,7 @@ async def update_index_cli(summary_path, snapshot_min_secs, summary_min_mins, qu
 @click.option("--quiet", "-q", default=False, help="Suppress printing activities")
 @click.option(
     "--snapshot-min-secs",
-    default=10,
+    default=5,
     help="Minimum interval between video snapshots in seconds (default: 10)",
 )
 @click.option(
