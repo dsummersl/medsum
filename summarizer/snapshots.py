@@ -39,7 +39,7 @@ async def create_snapshots_at_time_increments(
     :param dir: Directory to save snapshots.
     :param min_interval: Minimum interval between snapshots in seconds.
     """
-    if os.path.exists(f"{dir}/snapshots.html"):
+    if os.path.exists(f"{dir}/snapshots/index.html"):
         logger.info("Snapshots already exists, skipping...")
         return
 
@@ -76,7 +76,7 @@ async def create_snapshots_at_time_increments(
 
 
 def create_snapshots_file(dir: str):
-    if os.path.exists(os.path.join(dir, "snapshots.html")):
+    if os.path.exists(os.path.join(dir, "snapshots/index.html")):
         return
 
     snapshot_files = [f for f in os.listdir(dir) if f.endswith(".jpg")]
@@ -89,5 +89,6 @@ def create_snapshots_file(dir: str):
         snapshot_html.append(f"<img data-start='{start_time}' src='{filename}'>")
 
     logger.info("Saving snapshots to file...")
-    with open(os.path.join(dir, "snapshots.html"), "w") as file:
+    os.makedirs(os.path.join(dir, "snapshots"), exist_ok=True)
+    with open(os.path.join(dir, "snapshots/index.html"), "w") as file:
         file.write("\n".join(snapshot_html))

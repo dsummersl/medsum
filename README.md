@@ -39,12 +39,12 @@ Summarize an audio file:
 ```bash
 tldl summarize /path/to/audio.mp3
 
-
 # what you get:
 audio/index.html
 audio/audio.html
 audio/summary.html
-audio/snapshots.html
+audio/snapshots/index.html
+audio/snapshots/*.jpg (lots of snapshots)
 audio/transcript.vtt
 audio/audio.mp3
 
@@ -53,11 +53,11 @@ tldl summarize /path/to/audio_and_video.mp4
 audio_and_video/index.html
 audio_and_video/audio_and_video.html
 audio_and_video/summary.html
-audio_and_video/snapshots.html
+audio_and_video/snapshots/index.html
+audio_and_video/snapshots/00_00_05.jpg
+audio_and_video/snapshots/00_01_12.jpg
 audio_and_video/transcript.vtt
 audio_and_video/audio.mp3
-audio_and_video/00_00_05.jpg
-audio_and_video/00_01_12.jpg
 
 ```
 
