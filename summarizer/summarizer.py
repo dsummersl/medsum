@@ -13,7 +13,7 @@ from .ffmpeg import create_lower_quality_mp3, file_contains_video_or_audio
 from .ffmpeg import logger as ffmpeg_logger
 from .templates import SUMMARY_TEMPLATE
 from .snapshots import create_snapshots_at_time_increments, create_snapshots_file, logger as snapshots_logger
-from .llm import create_transcript, chat
+from .llm import create_transcript, generate_summary
 
 logger = logging.getLogger(__name__)
 
@@ -37,57 +37,7 @@ def coro(f):
     return wrapper
 
 
-async def generate_summary(
-    dir: str, force: bool, quiet: bool, minimum_summary_minutes: int
-):
-    """Use openai to summarize the VTT formatted transcript, and save it to 'dir/summary.html'"""
-    transcript_path = os.path.join(dir, "transcript.vtt")
-    summary_path = os.path.join(dir, "summary.html")
-
-    if not force and os.path.exists(summary_path):
-        logger.info("Summary already exists, skipping...")
-        return
-
-    with open(transcript_path, "r") as file:
-        transcript_text = file.read()
-
-    logger.info("Generating summary...")
-
-    # Chunk size (number of characters times the estimated characters per token)
-    chunk_size = 12000 * 2
-
-    # Split the transcript text into chunks
-    chunks = [
-        transcript_text[i : i + chunk_size]
-        for i in range(0, len(transcript_text), chunk_size)
-    ]
-
-    # List to hold summaries of each chunk
-    summaries = []
-
-    count = 1
-    for chunk in chunks:
-        print(
-            f"Generating summary for chunk {count} of {len(chunks)}..."
-        ) if not quiet else None
-        prompt = SUMMARY_TEMPLATE.format(
-            transcript_text=chunk, minimum_summary_minutes=minimum_summary_minutes
-        )
-        response = await chat(prompt)
-        # Append the summary of the chunk to the summaries list
-        summaries.append(response.choices[0].message.content.strip())
-        count += 1
-
-    logger.info("Joining summaries, and saving...")
-    # Combine all summaries into one
-    combined_summary = "\n".join(summaries)
-
-    # Save the combined summary to a markdown file
-    with open(summary_path, "w") as file:
-        file.write(combined_summary)
-
-
-async def create_index(dir: str, output_path: str, force: bool):
+async def create_index(dir: str, output_path: str):
     """Generate an index.html and dir-name html file for the directory"""
     index_path = os.path.join(dir, "index.html")
     dir_path = os.path.join(dir, f"{output_path}.html")
@@ -106,7 +56,7 @@ async def create_index(dir: str, output_path: str, force: bool):
     logger.info("Generating index.html...")
 
     logger.info(f"Index path: {index_path}")
-    if force or not os.path.exists(index_path):
+    if not os.path.exists(index_path):
         with open(index_path, "w") as file:
             file.write(
                 HTML_TEMPLATE.format(
@@ -120,7 +70,7 @@ async def create_index(dir: str, output_path: str, force: bool):
         logger.info("Index already exists, skipping...")
 
     logger.info(f"Dir HTML path: {dir_path}")
-    if force or not os.path.exists(dir_path):
+    if not os.path.exists(dir_path):
         with open(dir_path, "w") as file:
             file.write(
                 HTML_TEMPLATE.format(
@@ -165,8 +115,6 @@ async def update_index(
     summary_min_mins,
     snapshot_min_secs,
     has_video,
-    force,
-    force_summary,
     quiet,
 ):
     print("Creating transcript...") if not quiet else None
@@ -175,22 +123,24 @@ async def update_index(
         os.makedirs(dirname, exist_ok=True)
         if transcript != f"{dirname}/transcript.vtt":
             shutil.copy(transcript, f"{dirname}/transcript.vtt")
-    elif force or not os.path.exists(f"{dir}/transcript.vtt"):
+    elif not os.path.exists(f"{dir}/transcript.vtt"):
         print("Generating transcript...") if not quiet else None
-        await create_transcript(f"{dirname}/audio.mp3", dirname, force)
+        await create_transcript(f"{dirname}/audio.mp3", dirname)
 
     print("Generating summary...") if not quiet else None
-    await generate_summary(dirname, force_summary, quiet, summary_min_mins)
+    transcript_path = os.path.join(dirname, "transcript.vtt")
+    summary_path = os.path.join(dirname, "summary.html")
+    await generate_summary(transcript_path, summary_path, SUMMARY_TEMPLATE, quiet, summary_min_mins)
 
     if has_video:
         print("Generating snapshots...") if not quiet else None
         await create_snapshots_at_time_increments(
-            file_path, dirname, force, snapshot_min_secs
+            file_path, dirname, snapshot_min_secs
         )
-    create_snapshots_file(dirname, force)
+    create_snapshots_file(dirname)
 
     last_dir = os.path.basename(os.path.dirname(dirname + "/fake.txt"))
-    await create_index(dirname, last_dir, force)
+    await create_index(dirname, last_dir)
 
 
 @click.group()
@@ -251,9 +201,6 @@ async def update_index_cli(summary_path, snapshot_min_secs, summary_min_mins, qu
 @click.option("--output", "-o", default=None, help="Where to drop the output files")
 @click.option("--open/--no-open", "-p", default=False, help="Open the index.html file in a browser")
 @click.option(
-    "--force/--no-force", "-f", default=False, help="Overwrite any existing files"
-)
-@click.option(
     "--snapshots/--no-snapshots", default=True, help="Create snapshots if possible"
 )
 @click.option("--quiet", "-q", default=False, help="Suppress printing activities")
@@ -279,7 +226,6 @@ async def summarize(
     file_path,
     output,
     open,
-    force,
     quiet,
     level,
     summary_min_mins,
@@ -293,7 +239,6 @@ async def summarize(
     snapshots_logger.setLevel(level)
 
     logger.debug(f"Logging level: {level}")
-    logger.debug(f"Force: {force}")
 
     output = output if output else "."
     output_dirname = "_".join(os.path.basename(file_path).split(".")[0:-1]).replace(
@@ -312,7 +257,7 @@ async def summarize(
     logger.debug(f"Has audio: {has_audio}")
 
     print("Generating audio sample...") if not quiet else None
-    create_lower_quality_mp3(file_path, dirname, force)
+    create_lower_quality_mp3(file_path, dirname)
 
     await update_index(
         file_path,
@@ -321,8 +266,6 @@ async def summarize(
         summary_min_mins,
         snapshot_min_secs,
         has_video and snapshots,
-        force,
-        force,
         quiet,
     )
 

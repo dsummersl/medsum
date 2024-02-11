@@ -79,6 +79,9 @@ tldl update-index /path/to/summary-directory
 - Add an option to ignore video on video files.
 - Add a summary of the summary to the top of the HTML report.
 - Make formal metadata files so that presentation is cleanly separated from UX.
+- Extract metadata from snapshots, so that its searchable.
+- Improve the image snapshots - currently..._way_ too limited.
+- TODO use non-openai or at least make it configurable.
 
 # Limitations
 

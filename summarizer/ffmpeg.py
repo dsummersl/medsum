@@ -39,7 +39,7 @@ def file_contains_video_or_audio(file_path):
         raise ValueError("Could not parse ffprobe output")
 
 
-def create_lower_quality_mp3(source_file: str, dir: str, force: bool):
+def create_lower_quality_mp3(source_file: str, dir: str):
     """
     Generates a lower quality MP3 file from the source file using FFmpeg.
 
@@ -48,7 +48,7 @@ def create_lower_quality_mp3(source_file: str, dir: str, force: bool):
     """
     output_file = os.path.join(dir, "audio.mp3")
 
-    if not force and os.path.exists(output_file):
+    if os.path.exists(output_file):
         logger.info("Lower quality MP3 already exists, skipping...")
         return
 

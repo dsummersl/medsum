@@ -1,6 +1,5 @@
 import logging
 import os
-import re
 import subprocess
 
 from .ffmpeg import take_snapshot
@@ -30,7 +29,7 @@ def similar_snapshots(snapshot1_path: str, snapshot2_path: str, percent: int):
 
 
 async def create_snapshots_at_time_increments(
-    source_file: str, dir: str, force: bool, min_interval: float
+    source_file: str, dir: str, min_interval: float
 ):
     """
     If the file is a video, create snapshots at the start time of each summary,
@@ -38,10 +37,9 @@ async def create_snapshots_at_time_increments(
 
     :param source_file: Path to the video file.
     :param dir: Directory to save snapshots.
-    :param force: Force creation of snapshots even if they exist.
     :param min_interval: Minimum interval between snapshots in seconds.
     """
-    if not force and os.path.exists(f"{dir}/snapshots.html"):
+    if os.path.exists(f"{dir}/snapshots.html"):
         logger.info("Snapshots already exists, skipping...")
         return
 
@@ -58,7 +56,7 @@ async def create_snapshots_at_time_increments(
 
         snapshot_filename = start_time.replace(":", "_") + ".jpg"
         snapshot_path = os.path.join(dir, snapshot_filename)
-        if not force and os.path.exists(snapshot_path):
+        if os.path.exists(snapshot_path):
             logger.info(f"Snapshot for {start_time} already exists, skipping...")
             continue
 
@@ -77,8 +75,8 @@ async def create_snapshots_at_time_increments(
         previous_snapshot_path = snapshot_path
 
 
-def create_snapshots_file(dir: str, force: bool):
-    if not force and os.path.exists(os.path.join(dir, "snapshots.html")):
+def create_snapshots_file(dir: str):
+    if os.path.exists(os.path.join(dir, "snapshots.html")):
         return
 
     snapshot_files = [f for f in os.listdir(dir) if f.endswith(".jpg")]
