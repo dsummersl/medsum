@@ -42,7 +42,7 @@ async def create_index(dir: str, output_path: str):
     index_path = os.path.join(dir, "index.html")
     dir_path = os.path.join(dir, f"{output_path}.html")
 
-    with open(os.path.join(dir, "summary.html"), "r") as file:
+    with open(os.path.join(dir, "summary.json"), "r") as file:
         summary = file.read()
 
     with open(os.path.join(dir, "transcript.vtt"), "r") as file:
@@ -56,32 +56,26 @@ async def create_index(dir: str, output_path: str):
     logger.info("Generating index.html...")
 
     logger.info(f"Index path: {index_path}")
-    if not os.path.exists(index_path):
-        with open(index_path, "w") as file:
-            file.write(
-                HTML_TEMPLATE.format(
-                    title=output_path,
-                    summary=summary,
-                    transcript=transcript,
-                    snapshots=snapshots,
-                )
+    with open(index_path, "w") as file:
+        file.write(
+            HTML_TEMPLATE.format(
+                title=output_path,
+                summary=summary,
+                transcript=transcript,
+                snapshots=snapshots,
             )
-    else:
-        logger.info("Index already exists, skipping...")
+        )
 
     logger.info(f"Dir HTML path: {dir_path}")
-    if not os.path.exists(dir_path):
-        with open(dir_path, "w") as file:
-            file.write(
-                HTML_TEMPLATE.format(
-                    title=output_path,
-                    summary=summary,
-                    transcript=transcript,
-                    snapshots=snapshots,
-                )
+    with open(dir_path, "w") as file:
+        file.write(
+            HTML_TEMPLATE.format(
+                title=output_path,
+                summary=summary,
+                transcript=transcript,
+                snapshots=snapshots,
             )
-    else:
-        logger.info("Dir HTML already exists, skipping...")
+        )
 
 
 
@@ -100,7 +94,7 @@ class SummaryHTMLParser(HTMLParser):
 
 
 def extract_summary_start_times(dir: str):
-    summary_path = os.path.join(dir, "summary.html")
+    summary_path = os.path.join(dir, "summary.json")
 
     parser = SummaryHTMLParser()
     with open(summary_path, "r") as file:
@@ -129,7 +123,7 @@ async def update_index(
 
     print("Generating summary...") if not quiet else None
     transcript_path = os.path.join(dirname, "transcript.vtt")
-    summary_path = os.path.join(dirname, "summary.html")
+    summary_path = os.path.join(dirname, "summary.json")
     await generate_summary(transcript_path, summary_path, SUMMARY_TEMPLATE, quiet, summary_min_mins)
 
     if has_video:

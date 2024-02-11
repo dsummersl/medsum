@@ -15,42 +15,57 @@ Summarize the topics discussed and parties involved in the transcript above with
 
 Template of the output format:
 
-<div data-start="[hour]:[minute]:[second]">
-  <b>[hour]:[minute]:[second]</b>
-  <ul>
-    <li>[Summary entry]</li>
-  </ul>
-</div>
+- start: "[hour]:[minute]:[second]"
+  title: "[Summary title]"
+  description: |
+    [Extended summary description]
+... more summary entries...
 
 Example:
-<div data-start="00:03:15">
-  <b>00:03:15</b>
-  <ul>
-    <li>
-      Started the agenda: <mark>vacation planning</mark>, <mark>action items</mark>.
-    </li>
-  </ul>
-</div>
-<div data-start="00:05:05">
-  <b>00:05:05</b>
-  <ul>
-    <li>Started talking about <mark>vacation planning</mark>.</li>
-    <li>
-      <mark>Jerry</mark> discussed what kind of socks, pants and shoes should be brought.
-    </li>
-    <li><mark>Sheryll</mark> brought up the idea of bringing a tent.</li>
-    <li><mark>Decided to bring a tent, and personal items</mark>.</li>
-  </ul>
-</div>
-<div data-start="00:08:13">
-  <b>00:08:13</b>
-  <ul>
-    <li>Started talking about <mark>action items</mark></li>
-    <li>
-      People expressed a need to <mark>have another meeting after vacation</mark>.
-    </li>
-  </ul>
-</div>
+
+- start: "00:03:15"
+  title: "Vacation Planning"
+  description: |
+    Started a discussion about vacation planning. Jerry discussed what kind of
+    socks, pants and shoes should be brought. Sheryll brought up the idea of
+    bringing a tent. Decided to bring a tent, and personal items.
+- start: "00:08:13"
+  title: "Action Items"
+  description: |
+    The vacation planning stopped and the group decided to take a tent, and some
+    basic personal items. Everyone expressed a need to have another meeting
+    after vacation.
+
+***
+
+"""
+
+
+TOPIC_SHIFT_TEMPLATE = """\
+Transcript:
+{transcript_text}
+
+***
+
+Identify the subsections within the transcript that correspond to the topic
+shifts.
+- Provide a brief summary or description of each subsection.
+- Key points are those frequently mentioned in the discussion, or key decisions that were made.
+- Highlight people, places, things, topics, key points, and times that are mentioned.
+- Use a <mark> tag to highlight.
+
+Template of the output YAML format:
+
+- start: "[hour]:[minute]:[second]"
+  text: "[Summary entry]"
+... more summary entries...
+
+Example:
+
+- start: "00:03:15"
+  text: "Started talking about <mark>action items</mark>"
+- start: "00:05:38"
+  text: "<mark>Sheryll</mark> brought up the idea of bringing a tent."
 
 ***
 

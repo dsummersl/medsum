@@ -42,7 +42,7 @@ tldl summarize /path/to/audio.mp3
 # what you get:
 audio/index.html
 audio/audio.html
-audio/summary.html
+audio/summary.json
 audio/snapshots/index.html
 audio/snapshots/*.jpg (lots of snapshots)
 audio/transcript.vtt
@@ -52,7 +52,7 @@ tldl summarize /path/to/audio_and_video.mp4
 # what you get:
 audio_and_video/index.html
 audio_and_video/audio_and_video.html
-audio_and_video/summary.html
+audio_and_video/summary.json
 audio_and_video/snapshots/index.html
 audio_and_video/snapshots/00_00_05.jpg
 audio_and_video/snapshots/00_01_12.jpg

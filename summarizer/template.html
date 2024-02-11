@@ -76,7 +76,7 @@
 
     .summary-container div[data-start] {
       display: flex;
-      align-items: center;
+      flex-direction: column;
       margin-bottom: 10px;
       border: 1px solid #ddd;
       padding: 10px;
@@ -152,6 +152,8 @@
     }
   </style>
   <script>
+    const SUMMARIES = [[summary]];
+
     function insertImages() {
       var summaries = document.querySelectorAll(
         ".summary-container div[data-start]",
@@ -324,6 +326,24 @@
       vttContainer.innerHTML = processedHTML;
     }
 
+    function preprocessSummaries() {
+      SUMMARIES.forEach((summary) => {
+        let start = summary.start;
+        let title = summary.title;
+        let description = summary.description;
+        let summaryDiv = document.createElement("div");
+        const summaryContainer = document.querySelector(".summary-container");
+        summaryDiv.setAttribute("data-start", start);
+        summaryDiv.innerHTML = `
+          <h3>${title}</h3>
+          <p>
+            <b>${start}</b> : ${description}
+          </p>
+        `;
+        summaryContainer.appendChild(summaryDiv);
+      });
+    }
+
     function timeStringToSeconds(timeString) {
       let parts = timeString.split(":");
 
@@ -350,6 +370,10 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+      insertImages();
+      preprocessVTTContent();
+      preprocessSummaries();
+
       let summaryDivs = document.querySelectorAll("div[data-start]");
       summaryDivs.forEach(function (div) {
         div.addEventListener("click", function () {
@@ -368,10 +392,6 @@
       document
         .getElementById("toggleImages")
         .addEventListener("click", () => toggleContainer(".img-content"));
-
-
-      insertImages();
-      preprocessVTTContent();
     });
   </script>
 </head>
@@ -393,7 +413,7 @@
   </div>
 
   <div class="main-container">
-    <div class="container summary-container">[[summary]]</div>
+    <div class="container summary-container"></div>
 
     <pre class="container vtt-container">
       [[transcript]]

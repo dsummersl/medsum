@@ -1,5 +1,7 @@
 import logging
 import os
+import yaml
+import json
 
 from langchain_openai import ChatOpenAI
 from openai import AsyncOpenAI
@@ -7,8 +9,8 @@ from openai import AsyncOpenAI
 
 # https://github.com/langchain-ai/langchain/issues/10415 -- you can set this as a parameter
 llm = ChatOpenAI(
-    temperature=0.0,
-    openai_api_base="http://localhost:8080/v1",
+    # temperature=0.0,
+    # openai_api_base="http://localhost:8080/v1",
 )
 
 logger = logging.getLogger(__name__)
@@ -60,7 +62,8 @@ async def generate_summary(
     logger.info("Generating summary...")
 
     # Chunk size (number of characters times the estimated characters per token)
-    chunk_size = 12000 * 2
+    # chunk_size = 12000 * 2
+    chunk_size = 3000 * 2
 
     # Split the transcript text into chunks
     chunks = [
@@ -85,9 +88,8 @@ async def generate_summary(
         count += 1
 
     logger.info("Joining summaries, and saving...")
-    # Combine all summaries into one
-    combined_summary = "\n".join(summaries)
+    combined_summary_as_yaml = "---\n" + "\n".join(summaries)
+    combined_summary = yaml.safe_load(combined_summary_as_yaml)
 
-    # Save the combined summary to a markdown file
     with open(dest, "w") as file:
-        file.write(combined_summary)
+        file.write(json.dumps(combined_summary, indent=2))
