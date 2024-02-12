@@ -45,7 +45,7 @@
       max-height: 100vh;
     }
 
-    .summary-container {
+    .chapters-container {
       flex: 1 1 66%;
     }
 
@@ -74,7 +74,7 @@
       margin-top: 10px;
     }
 
-    .summary-container div[data-start] {
+    .chapters-container > div {
       display: flex;
       flex-direction: column;
       margin-bottom: 10px;
@@ -112,8 +112,8 @@
       opacity: 1;
     }
 
-    .summary-container div[data-start]:hover,
-    .summary-container div[data-start].highlight {
+    .chapters-container div[data-start]:hover,
+    .chapters-container div[data-start].highlight {
       background-color: #f0f0f0;
     }
 
@@ -153,10 +153,11 @@
   </style>
   <script>
     const SUMMARIES = [[summary]];
+    const CHAPTERS = [[chapters]];
 
     function insertImages() {
       var summaries = document.querySelectorAll(
-        ".summary-container div[data-start]",
+        ".chapters-container div[data-start]",
       );
       var snapshots = document.querySelectorAll(".snapshots-container img");
 
@@ -270,7 +271,7 @@
       });
       };
       markPlayingElement(
-        document.querySelectorAll(".summary-container div[data-start]"),
+        document.querySelectorAll(".chapters-container div[data-start]"),
       );
       markPlayingElement(
         document.querySelectorAll(".vtt-container div[data-start]"),
@@ -279,7 +280,7 @@
       centerOnPlayingElement();
 
       let playingSummary = document.querySelector(
-        ".summary-container .playing",
+        ".chapters-container .playing",
       );
       if (playingSummary) {
         let images = playingSummary.querySelectorAll(".img-content img");
@@ -326,13 +327,41 @@
       vttContainer.innerHTML = processedHTML;
     }
 
-    function preprocessSummaries() {
+    function preprocessChapters() {
+      CHAPTERS.forEach((chapter) => {
+        let start = chapter.start;
+        let title = chapter.title;
+        let description = chapter.description;
+        let chapterDiv = document.createElement("div");
+        const chaptersContainer = document.querySelector(".chapters-container");
+        chapterDiv.setAttribute("data-chapter-start", start);
+        chapterDiv.innerHTML = `
+          <h2>${title}</h2>
+          <p>${description}</p>
+          <hr/>
+        `;
+        chaptersContainer.appendChild(chapterDiv);
+      });
+      const findChapterEl = (time) => {
+        let chapters = document.querySelectorAll(".chapters-container > div[data-chapter-start]");
+        let foundChapter = false;
+        Array.from(chapters).forEach(function (chapter) {
+          let startTime = timeStringToSeconds(
+            chapter.getAttribute("data-chapter-start"),
+          );
+          if (time >= startTime) {
+            foundChapter = chapter;
+          }
+        });
+        return foundChapter;
+      };
       SUMMARIES.forEach((summary) => {
         let start = summary.start;
         let title = summary.title;
+        let summaryStartTime = timeStringToSeconds(start);
         let description = summary.description;
         let summaryDiv = document.createElement("div");
-        const summaryContainer = document.querySelector(".summary-container");
+        const summaryContainer = findChapterEl(summaryStartTime);
         summaryDiv.setAttribute("data-start", start);
         summaryDiv.innerHTML = `
           <h3>${title}</h3>
@@ -372,12 +401,20 @@
     document.addEventListener("DOMContentLoaded", function () {
       insertImages();
       preprocessVTTContent();
-      preprocessSummaries();
+      preprocessChapters();
 
       let summaryDivs = document.querySelectorAll("div[data-start]");
       summaryDivs.forEach(function (div) {
         div.addEventListener("click", function () {
           let start = this.getAttribute("data-start");
+          setAudioPlayerOffset(start);
+        });
+      });
+
+      summaryDivs = document.querySelectorAll("div[data-chapter-start]");
+      summaryDivs.forEach(function (div) {
+        let start = div.getAttribute("data-chapter-start");
+        div.querySelector("h2").addEventListener("click", function () {
           setAudioPlayerOffset(start);
         });
       });
@@ -413,7 +450,8 @@
   </div>
 
   <div class="main-container">
-    <div class="container summary-container"></div>
+    <div class="container chapters-container">
+    </div>
 
     <pre class="container vtt-container">
       [[transcript]]

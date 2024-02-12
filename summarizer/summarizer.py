@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import shutil
+import json
 import subprocess
 import sys
 from functools import wraps
@@ -11,7 +12,7 @@ import click
 
 from .ffmpeg import create_lower_quality_mp3, file_contains_video_or_audio
 from .ffmpeg import logger as ffmpeg_logger
-from .templates import SUMMARY_TEMPLATE
+from .templates import SUMMARY_TEMPLATE, CHAPTERS_TEMPLATE
 from .snapshots import create_snapshots_at_time_increments, create_snapshots_file, logger as snapshots_logger
 from .llm import create_transcript, generate_summary
 
@@ -45,6 +46,9 @@ async def create_index(dir: str, output_path: str):
     with open(os.path.join(dir, "summary.json"), "r") as file:
         summary = file.read()
 
+    with open(os.path.join(dir, "chapters.json"), "r") as file:
+        chapters = file.read()
+
     with open(os.path.join(dir, "transcript.vtt"), "r") as file:
         transcript = file.read()
 
@@ -61,6 +65,7 @@ async def create_index(dir: str, output_path: str):
             HTML_TEMPLATE.format(
                 title=output_path,
                 summary=summary,
+                chapters=chapters,
                 transcript=transcript,
                 snapshots=snapshots,
             )
@@ -72,6 +77,7 @@ async def create_index(dir: str, output_path: str):
             HTML_TEMPLATE.format(
                 title=output_path,
                 summary=summary,
+                chapters=chapters,
                 transcript=transcript,
                 snapshots=snapshots,
             )
@@ -125,6 +131,16 @@ async def update_index(
     transcript_path = os.path.join(dirname, "transcript.vtt")
     summary_path = os.path.join(dirname, "summary.json")
     await generate_summary(transcript_path, summary_path, SUMMARY_TEMPLATE, quiet, summary_min_mins)
+
+    print("Generating chapters...") if not quiet else None
+    summary_to_chapters_path = os.path.join(dirname, "chapters.txt")
+    source_sections = json.loads(open(summary_path).read())
+    sources = "\n".join([f"{s['start']} {s['title']} : {s['description']}" for s in source_sections])
+    with open(summary_to_chapters_path, "w") as f:
+        f.write(sources)
+
+    chapter_path = os.path.join(dirname, "chapters.json")
+    await generate_summary(summary_to_chapters_path, chapter_path, CHAPTERS_TEMPLATE, quiet, None)
 
     if has_video:
         print("Generating snapshots...") if not quiet else None

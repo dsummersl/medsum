@@ -49,7 +49,7 @@ async def chat(prompt: str) -> str:
 
 
 async def generate_summary(
-    source: str, dest: str, template: str, quiet: bool, minimum_summary_minutes: int
+    source: str, dest: str, template: str, quiet: bool, minimum_summary_minutes: int | None
 ):
     """Summarize a text file, and save it to a destination"""
     if os.path.exists(dest):
@@ -80,9 +80,12 @@ async def generate_summary(
         print(
             f"Generating summary for chunk {count} of {len(chunks)}..."
         ) if not quiet else None
-        prompt = template.format(
-            transcript_text=chunk, minimum_summary_minutes=minimum_summary_minutes
-        )
+        parameters = {
+            "transcript_text": chunk,
+        }
+        if minimum_summary_minutes is not None:
+            parameters["minimum_summary_minutes"] = str(minimum_summary_minutes)
+        prompt = template.format(**parameters)
         response = await chat(prompt)
         summaries.append(response)
         count += 1

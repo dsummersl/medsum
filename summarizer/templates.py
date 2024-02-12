@@ -41,31 +41,38 @@ Example:
 """
 
 
-TOPIC_SHIFT_TEMPLATE = """\
-Transcript:
+CHAPTERS_TEMPLATE = """\
+Summaries:
 {transcript_text}
 
 ***
 
-Identify the subsections within the transcript that correspond to the topic
-shifts.
-- Provide a brief summary or description of each subsection.
-- Key points are those frequently mentioned in the discussion, or key decisions that were made.
-- Highlight people, places, things, topics, key points, and times that are mentioned.
-- Use a <mark> tag to highlight.
+Summarize entries above into high level sections with the following guidelines:
+- Provide a brief section title, and a longer description summarizing the sections that were grouped together.
+- Group at least three sections together.
+- The output should be at least half the size of the input.
 
 Template of the output YAML format:
 
 - start: "[hour]:[minute]:[second]"
-  text: "[Summary entry]"
+  title: "[Section summary]"
+  description: "[Longer description]"
 ... more summary entries...
 
 Example:
 
 - start: "00:03:15"
-  text: "Started talking about <mark>action items</mark>"
-- start: "00:05:38"
-  text: "<mark>Sheryll</mark> brought up the idea of bringing a tent."
+  title: "Overview of the camping trip."
+  description: |
+    The group discussed the a camping trip to Novia Scotia. They talked about
+    where it would be and then what kinds of things they thouht they'd want to
+    bring.
+- start: "00:38:03"
+  title: "Summary and end of meeting"
+  description: |
+    Some people had left earlier, so they decided to send an email about the
+    decisions that were made. They decided to meet again in a week to finalize
+    the plans.
 
 ***
 
