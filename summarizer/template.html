@@ -6,7 +6,9 @@
   <style>
     body {
       margin: 20px;
-      font-family: Arial, sans serif;
+      font-family:
+        Arial,
+        sans serif;
     }
 
     h1 {
@@ -74,13 +76,11 @@
       margin-top: 10px;
     }
 
-    .chapters-container > div {
+    .chapters-container>div {
       display: flex;
       flex-direction: column;
       margin-bottom: 10px;
-      border: 1px solid #ddd;
       padding: 10px;
-      border-radius: 5px;
       transition: background-color 0.3s ease;
     }
 
@@ -222,7 +222,7 @@
 
         // Scroll the container
         container.scrollTop = scrollTo;
-    }
+      }
     }
 
     function startTimeToImageName(startTime) {
@@ -258,17 +258,17 @@
         Array.from(summaries)
           .reverse()
           .forEach(function (summary) {
-          let startTime = timeStringToSeconds(
-          summary.getAttribute("data-start"),
-        );
+            let startTime = timeStringToSeconds(
+              summary.getAttribute("data-start"),
+            );
 
-        if (currentTime >= startTime && !activeElement) {
-          summary.classList.add("playing");
-          activeElement = true;
-        } else {
-          summary.classList.remove("playing");
-        }
-      });
+            if (currentTime >= startTime && !activeElement) {
+              summary.classList.add("playing");
+              activeElement = true;
+            } else {
+              summary.classList.remove("playing");
+            }
+          });
       };
       markPlayingElement(
         document.querySelectorAll(".chapters-container div[data-start]"),
@@ -333,17 +333,19 @@
         let title = chapter.title;
         let description = chapter.description;
         let chapterDiv = document.createElement("div");
-        const chaptersContainer = document.querySelector(".chapters-container");
+        const chaptersContainer = document.querySelector(
+          ".chapters-container",
+        );
         chapterDiv.setAttribute("data-chapter-start", start);
         chapterDiv.innerHTML = `
           <h2>${title}</h2>
-          <p>${description}</p>
-          <hr/>
         `;
         chaptersContainer.appendChild(chapterDiv);
       });
       const findChapterEl = (time) => {
-        let chapters = document.querySelectorAll(".chapters-container > div[data-chapter-start]");
+        let chapters = document.querySelectorAll(
+          ".chapters-container > div[data-chapter-start]",
+        );
         let foundChapter = false;
         Array.from(chapters).forEach(function (chapter) {
           let startTime = timeStringToSeconds(
@@ -364,7 +366,6 @@
         const summaryContainer = findChapterEl(summaryStartTime);
         summaryDiv.setAttribute("data-start", start);
         summaryDiv.innerHTML = `
-          <h3>${title}</h3>
           <p>
             <b>${start}</b> : ${description}
           </p>
@@ -451,6 +452,7 @@
 
   <div class="main-container">
     <div class="container chapters-container">
+      <div class="container summary-container">[[description]]</div>
     </div>
 
     <pre class="container vtt-container">

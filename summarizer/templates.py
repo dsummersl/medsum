@@ -42,15 +42,14 @@ Example:
 
 
 CHAPTERS_TEMPLATE = """\
-Summaries:
+Input:
 {transcript_text}
 
 ***
 
-Summarize entries above into high level sections with the following guidelines:
-- Provide a brief section title, and a longer description summarizing the sections that were grouped together.
+Group the entries above into chapters:
+- Provide a title, and a summary of the sections that were grouped together.
 - Group at least three sections together.
-- The output should be at least half the size of the input.
 
 Template of the output YAML format:
 
@@ -73,6 +72,25 @@ Example:
     Some people had left earlier, so they decided to send an email about the
     decisions that were made. They decided to meet again in a week to finalize
     the plans.
+
+***
+
+"""
+
+
+TITLE_TEMPLATE = """\
+Input:
+{transcript_text}
+
+***
+
+Create a title for the transcript above, and provide a summary of the input.
+
+Template of the output YAML format:
+
+title: "[Title of the transcript]"
+description: "[Summary]"
+duration: "[hour]:[minute]:[second]"
 
 ***
 

@@ -12,7 +12,7 @@ import click
 
 from .ffmpeg import create_lower_quality_mp3, file_contains_video_or_audio
 from .ffmpeg import logger as ffmpeg_logger
-from .templates import SUMMARY_TEMPLATE, CHAPTERS_TEMPLATE
+from .templates import SUMMARY_TEMPLATE, CHAPTERS_TEMPLATE, TITLE_TEMPLATE
 from .snapshots import create_snapshots_at_time_increments, create_snapshots_file, logger as snapshots_logger
 from .llm import create_transcript, generate_summary
 
@@ -49,6 +49,9 @@ async def create_index(dir: str, output_path: str):
     with open(os.path.join(dir, "chapters.json"), "r") as file:
         chapters = file.read()
 
+    with open(os.path.join(dir, "title.json"), "r") as file:
+        title_data = json.loads(file.read())
+
     with open(os.path.join(dir, "transcript.vtt"), "r") as file:
         transcript = file.read()
 
@@ -63,7 +66,8 @@ async def create_index(dir: str, output_path: str):
     with open(index_path, "w") as file:
         file.write(
             HTML_TEMPLATE.format(
-                title=output_path,
+                title=title_data['title'],
+                description=title_data['description'],
                 summary=summary,
                 chapters=chapters,
                 transcript=transcript,
@@ -76,6 +80,7 @@ async def create_index(dir: str, output_path: str):
         file.write(
             HTML_TEMPLATE.format(
                 title=output_path,
+                description=title_data['description'],
                 summary=summary,
                 chapters=chapters,
                 transcript=transcript,
@@ -139,8 +144,17 @@ async def update_index(
     with open(summary_to_chapters_path, "w") as f:
         f.write(sources)
 
-    chapter_path = os.path.join(dirname, "chapters.json")
-    await generate_summary(summary_to_chapters_path, chapter_path, CHAPTERS_TEMPLATE, quiet, None)
+    chapters_path = os.path.join(dirname, "chapters.json")
+    await generate_summary(summary_to_chapters_path, chapters_path, CHAPTERS_TEMPLATE, quiet, None)
+
+    print("Generating title...") if not quiet else None
+    summary_to_chapters_path = os.path.join(dirname, "titles.txt")
+    chapter_parts = json.loads(open(chapters_path).read())
+    chapters = "\n".join([f"{s['start']} {s['title']} : {s['description']}" for s in chapter_parts])
+    with open(summary_to_chapters_path, "w") as f:
+        f.write(chapters)
+    title_path = os.path.join(dirname, "title.json")
+    await generate_summary(summary_to_chapters_path, title_path, TITLE_TEMPLATE, quiet, None)
 
     if has_video:
         print("Generating snapshots...") if not quiet else None
