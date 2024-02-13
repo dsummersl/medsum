@@ -38,7 +38,7 @@ def coro(f):
     return wrapper
 
 
-async def create_index(dir: str, output_path: str):
+async def create_index(dir: str, output_path: str, title: str):
     """Generate an index.html and dir-name html file for the directory"""
     index_path = os.path.join(dir, "index.html")
     dir_path = os.path.join(dir, f"{output_path}.html")
@@ -66,7 +66,7 @@ async def create_index(dir: str, output_path: str):
     with open(index_path, "w") as file:
         file.write(
             HTML_TEMPLATE.format(
-                title=title_data['title'],
+                title=title or title_data['title'],
                 description=title_data['description'],
                 summary=summary,
                 chapters=chapters,
@@ -116,6 +116,7 @@ def extract_summary_start_times(dir: str):
 async def update_index(
     file_path,
     dirname,
+    title,
     transcript,
     summary_min_mins,
     snapshot_min_secs,
@@ -164,7 +165,7 @@ async def update_index(
     create_snapshots_file(dirname)
 
     last_dir = os.path.basename(os.path.dirname(dirname + "/fake.txt"))
-    await create_index(dirname, last_dir)
+    await create_index(dirname, last_dir, title)
 
 
 @click.group()
@@ -227,6 +228,9 @@ async def update_index_cli(summary_path, snapshot_min_secs, summary_min_mins, qu
 @click.option(
     "--snapshots/--no-snapshots", default=True, help="Create snapshots if possible"
 )
+@click.option(
+    "--title", help="Specify a title for the summary (default: auto-generated)"
+)
 @click.option("--quiet", "-q", default=False, help="Suppress printing activities")
 @click.option(
     "--snapshot-min-secs",
@@ -250,6 +254,7 @@ async def summarize(
     file_path,
     output,
     open,
+    title,
     quiet,
     level,
     summary_min_mins,
@@ -286,6 +291,7 @@ async def summarize(
     await update_index(
         file_path,
         dirname,
+        title,
         transcript,
         summary_min_mins,
         snapshot_min_secs,
