@@ -55,7 +55,7 @@ async def create_snapshots_at_time_increments(
             continue  # Skip if the interval is less than the minimum
 
         snapshot_filename = start_time.replace(":", "_") + ".jpg"
-        snapshot_path = os.path.join(dir, snapshot_filename)
+        snapshot_path = os.path.join(dir, "snapshots", snapshot_filename)
         if os.path.exists(snapshot_path):
             logger.info(f"Snapshot for {start_time} already exists, skipping...")
             continue

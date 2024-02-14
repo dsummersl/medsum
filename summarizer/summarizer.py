@@ -114,14 +114,14 @@ def extract_summary_start_times(dir: str):
 
 
 async def update_index(
-    file_path,
-    dirname,
-    title,
-    transcript,
-    summary_min_mins,
-    snapshot_min_secs,
-    has_video,
-    quiet,
+    file_path: str,
+    dirname: str,
+    title: str,
+    transcript:str,
+    summary_min_mins: int,
+    snapshot_min_secs:int,
+    has_video: bool,
+    quiet:bool,
 ):
     print("Creating transcript...") if not quiet else None
     if transcript:
@@ -186,8 +186,11 @@ def cli():
     default=2,
     help="When summarizing, minimum number of minutes in each summary (default: 2)",
 )
+@click.option(
+    "--title", help="Specify a title for the summary (default: auto-generated)"
+)
 @coro
-async def update_index_cli(summary_path, snapshot_min_secs, summary_min_mins, quiet):
+async def update_index_cli(summary_path, snapshot_min_secs, summary_min_mins, quiet, title):
     """Regenerate the transcript, summary, and index of a previously summarized directory.
 
     This command is useful if you want to refresh/update an existing summary:
@@ -206,12 +209,11 @@ async def update_index_cli(summary_path, snapshot_min_secs, summary_min_mins, qu
         summary_path + "/transcript.vtt"
         if os.path.exists(summary_path + "/transcript.vtt")
         else None,
+        title,
         summary_min_mins,
         snapshot_min_secs,
         False,
-        True,
-        False,
-        quiet,
+        quiet
     )
 
 
