@@ -60,6 +60,7 @@ async def create_snapshots_at_time_increments(
             logger.info(f"Snapshot for {start_time} already exists, skipping...")
             continue
 
+        os.makedirs(os.path.join(dir, "snapshots"), exist_ok=True)
         take_snapshot(source_file, start_time, snapshot_path)
 
         if previous_snapshot_path and similar_snapshots(
@@ -86,7 +87,7 @@ def create_snapshots_file(dir: str):
     for filename in snapshot_files:
         file_name_without_extension = os.path.splitext(filename)[0]
         start_time = file_name_without_extension.replace("_", ":")
-        snapshot_html.append(f"<img data-start='{start_time}' src='{filename}'>")
+        snapshot_html.append(f"<img data-start='{start_time}' src='snapshots/{filename}'>")
 
     logger.info("Saving snapshots to file...")
     os.makedirs(os.path.join(dir, "snapshots"), exist_ok=True)

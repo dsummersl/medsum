@@ -5,19 +5,18 @@
   <title>[[title]] Transcript Summary</title>
   <style>
     body {
-      margin: 20px;
-      font-family:
-        Arial,
-        sans serif;
+      margin: 0px;
+      font-family: Arial, sans serif;
     }
 
     h1 {
       text-align: center;
+      width: calc(100% - 80px);
     }
 
     .header {
       text-align: center;
-      margin-bottom: 10px;
+      height: 80px;
     }
 
     .icon-container {
@@ -44,7 +43,7 @@
 
     .main-container {
       display: flex;
-      max-height: 100vh;
+      height: calc(100vh - 100px - 80px - 21px);
     }
 
     .chapters-container {
@@ -59,11 +58,32 @@
     }
 
     .audio-container {
-      position: fixed;
-      bottom: 20px;
-      /* Padding from the bottom */
-      left: 50%;
-      transform: translateX(-50%);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 100px;
+    }
+
+    .snapshots-container {
+      height: 100%; /* Match the height of the audio-container */
+      display: flex;
+      align-items: center; /* Align the image vertically */
+      justify-content: flex-end; /* Align the image to the right */
+      overflow: hidden; /* Hide other images if they don't fit */
+      margin-right: 15px;
+    }
+
+    .snapshots-container audio {
+      margin-left: 10px;
+    }
+
+    .snapshots-container img {
+      display: none; /* Hide all images by default */
+      height: 100%; /* Scale the visible image to fill the container height */
+    }
+
+    .snapshots-container img:first-child {
+      display: block; /* Only display the first image */
     }
 
     .vtt-container div {
@@ -443,13 +463,6 @@
     </div>
   </div>
 
-  <div class="audio-container">
-    <audio id="audioPlayer" controls>
-      <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
-      Your browser does not support the audio element.
-    </audio>
-  </div>
-
   <div class="main-container">
     <div class="container chapters-container">
       <div class="container summary-container">[[description]]</div>
@@ -460,12 +473,17 @@
     </pre>
   </div>
 
-  <div class="snapshots-container">[[snapshots]]</div>
+  <div class="audio-container">
+    <audio id="audioPlayer" controls>
+      <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
+      Your browser does not support the audio element.
+    </audio>
+    <div class="snapshots-container">[[snapshots]]</div>
+  </div>
 
   <div class="zoomed">
     <img src="" alt="" />
     <div class="legend"></div>
   </div>
 </body>
-
 </html>
