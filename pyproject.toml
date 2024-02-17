@@ -20,9 +20,11 @@ langchain-openai = "^0.0.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.0.1"
+pytest-cov = "^3.0.0"
 
 [tool.pytest.ini_options]
 python_paths = ["summarizer"]
+addopts = "--cov=summarizer"
 
 [tool.poetry.scripts]
 tldl = "summarizer.summarizer:cli"
