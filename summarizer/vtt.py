@@ -36,7 +36,7 @@ def extract_transcript_start_times(dir: str):
     :param vtt_path: Path to the VTT file.
     :return: List of start times in seconds.
     """
-    vtt_path = os.path.join(dir, "transcript.vtt")
+    vtt_path = os.path.join(dir, "transcript.json")
 
     start_times = []
     patterns = [
