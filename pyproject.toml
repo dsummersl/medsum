@@ -1,3 +1,6 @@
+[tool.pyright]
+include = ["summarizer", "tests"]
+
 [tool.poetry]
 name = "summarizer"
 version = "0.1.0"
@@ -14,6 +17,8 @@ markdown2 = "^2.4.10"
 langchain = "^0.1.4"
 langgraph = "^0.0.19"
 langchain-openai = "^0.0.5"
+
+[tool.poetry.dev-dependencies]
 pytest = "^8.0.1"
 
 [tool.pytest.ini_options]

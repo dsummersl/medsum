@@ -1,18 +1,18 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from summarizer import llm
+import llm
 
-def test_create_transcript():
+async def test_create_transcript():
     with patch('os.path.exists', return_value=False), \
          patch('openai.AsyncOpenAI.audio.transcriptions.create', return_value='transcript'), \
          patch('os.makedirs'), \
          patch('builtins.open', new_callable=MagicMock):
-        llm.create_transcript('media_path', 'dir')
+        await llm.create_transcript('media_path', 'dir')
         # Add assertions here to verify the behavior
 
-def test_chat():
+async def test_chat():
     with patch('llm.ChatOpenAI.ainvoke', return_value=MagicMock(content='content')):
-        response = llm.chat('prompt')
+        response = await llm.chat('prompt')
         assert response == 'content'
         # Add more assertions here to verify the behavior
 

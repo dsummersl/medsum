@@ -123,6 +123,11 @@ async def update_index(
     has_video: bool,
     quiet:bool,
 ):
+    # TODO
+    # - run a command to find transitions in the transcript. These are the chapters.
+    # - include in this command all the snapshots we kept, and their timestamps.
+    # - make sure that the snapshots use the same timestamps as the chapters.
+    # - ideally, also describe the snapshots, and capture that context. Capture a title for each snapshot.
     print("Creating transcript...") if not quiet else None
     if transcript:
         logger.info(f"Using supplied transcript: {transcript}")
@@ -132,37 +137,37 @@ async def update_index(
     elif not os.path.exists(f"{dir}/transcript.vtt"):
         print("Generating transcript...") if not quiet else None
         await create_transcript(f"{dirname}/audio.mp3", dirname)
-
-    print("Generating summary...") if not quiet else None
     transcript_path = os.path.join(dirname, "transcript.vtt")
-    summary_path = os.path.join(dirname, "summary.json")
-    await generate_summary(transcript_path, summary_path, SUMMARY_TEMPLATE, quiet, summary_min_mins)
-
-    print("Generating chapters...") if not quiet else None
-    summary_to_chapters_path = os.path.join(dirname, "chapters.txt")
-    source_sections = json.loads(open(summary_path).read())
-    sources = "\n".join([f"{s['start']} {s['title']} : {s['description']}" for s in source_sections])
-    with open(summary_to_chapters_path, "w") as f:
-        f.write(sources)
-
-    chapters_path = os.path.join(dirname, "chapters.json")
-    await generate_summary(summary_to_chapters_path, chapters_path, CHAPTERS_TEMPLATE, quiet, None)
-
-    print("Generating title...") if not quiet else None
-    summary_to_chapters_path = os.path.join(dirname, "titles.txt")
-    chapter_parts = json.loads(open(chapters_path).read())
-    chapters = "\n".join([f"{s['start']} {s['title']} : {s['description']}" for s in chapter_parts])
-    with open(summary_to_chapters_path, "w") as f:
-        f.write(chapters)
-    title_path = os.path.join(dirname, "title.json")
-    await generate_summary(summary_to_chapters_path, title_path, TITLE_TEMPLATE, quiet, None)
 
     if has_video:
         print("Generating snapshots...") if not quiet else None
         await create_snapshots_at_time_increments(
             file_path, dirname, snapshot_min_secs
         )
-    create_snapshots_file(dirname)
+    snapshots = create_snapshots_file(dirname)
+
+    print("Generating chapters...") if not quiet else None
+    summary_to_chapters_path = os.path.join(dirname, "chapters.txt")
+    snapshot_text_path = os.path.join(dirname, "snapshots", "snapshot_text.json")
+    snapshot_text = "Snapshots:\n"+ "\n".join([f"{s['start']} : {s['source']}" for s in snapshots]) + "\n\nTranscript:\n"
+    with open(snapshot_text_path, "w") as f:
+        f.write(snapshot_text)
+
+    chapters_path = os.path.join(dirname, "chapters.json")
+    await generate_summary(transcript_path, chapters_path, CHAPTERS_TEMPLATE, quiet, None, snapshot_text_path)
+
+    print("Generating summary...") if not quiet else None
+    summary_path = os.path.join(dirname, "summary.json")
+    await generate_summary(transcript_path, summary_path, SUMMARY_TEMPLATE, quiet, summary_min_mins)
+
+    print("Generating title...") if not quiet else None
+    summary_to_chapters_path = os.path.join(dirname, "titles.txt")
+    chapter_parts = json.loads(open(chapters_path).read())
+    chapters = "Chapters:\n"+ "\n".join([f"{s['start']} {s['title']} : {s['description']}" for s in chapter_parts])
+    with open(summary_to_chapters_path, "w") as f:
+        f.write(chapters)
+    title_path = os.path.join(dirname, "title.json")
+    await generate_summary(summary_to_chapters_path, title_path, TITLE_TEMPLATE, quiet, None)
 
     last_dir = os.path.basename(os.path.dirname(dirname + "/fake.txt"))
     await create_index(dirname, last_dir, title)

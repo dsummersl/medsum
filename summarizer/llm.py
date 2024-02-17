@@ -8,7 +8,12 @@ from openai import AsyncOpenAI
 
 
 # https://github.com/langchain-ai/langchain/issues/10415 -- you can set this as a parameter
+
+# Chunk size (number of characters times the estimated characters per token)
+CHUNK_SIZE = 12000 * 2
+# CHUNK_SIZE = 3000 * 2
 llm = ChatOpenAI(
+    model="gpt-3.5-turbo-16k"
     # temperature=0.0,
     # openai_api_base="http://localhost:8080/v1",
 )
@@ -49,7 +54,7 @@ async def chat(prompt: str) -> str:
 
 
 async def generate_summary(
-    source: str, dest: str, template: str, quiet: bool, minimum_summary_minutes: int | None
+    source: str, dest: str, template: str, quiet: bool, minimum_summary_minutes: int | None = None, source_in_all_prompts: str | None = None
 ):
     """Summarize a text file, and save it to a destination"""
     if os.path.exists(dest):
@@ -57,18 +62,24 @@ async def generate_summary(
         return
 
     with open(source, "r") as file:
-        transcript_text = file.read()
+        source_text = file.read()
+
+    source_in_all_prompts_text = ""
+    if source_in_all_prompts and os.path.exists(source_in_all_prompts):
+        source_in_all_prompts_text = open(source_in_all_prompts, "r").read()
 
     logger.info("Generating summary...")
 
-    # Chunk size (number of characters times the estimated characters per token)
-    # chunk_size = 12000 * 2
-    chunk_size = 3000 * 2
+    if len(source_in_all_prompts_text) > CHUNK_SIZE:
+        logger.warning(
+            f"source_in_all_prompts_text is too long (not using): {len(source_in_all_prompts_text)}"
+        )
+        source_in_all_prompts_text = ""
 
     # Split the transcript text into chunks
     chunks = [
-        transcript_text[i : i + chunk_size]
-        for i in range(0, len(transcript_text), chunk_size)
+        source_in_all_prompts_text + source_text[i : i + CHUNK_SIZE]
+        for i in range(0, len(source_text), CHUNK_SIZE - len(source_in_all_prompts_text))
     ]
 
     # List to hold summaries of each chunk
@@ -81,8 +92,10 @@ async def generate_summary(
             f"Generating summary for chunk {count} of {len(chunks)}..."
         ) if not quiet else None
         parameters = {
-            "transcript_text": chunk,
+            "source_text": chunk,
         }
+        if minimum_summary_minutes is not None:
+            parameters["minimum_summary_minutes"] = str(minimum_summary_minutes)
         if minimum_summary_minutes is not None:
             parameters["minimum_summary_minutes"] = str(minimum_summary_minutes)
         prompt = template.format(**parameters)

@@ -1,6 +1,6 @@
 SUMMARY_TEMPLATE = """\
 Transcript:
-{transcript_text}
+{source_text}
 
 ***
 
@@ -42,26 +42,24 @@ Example:
 
 
 CHAPTERS_TEMPLATE = """\
-Input:
-{transcript_text}
+{source_text}
 
 ***
 
-Group the entries above into chapters:
-- Provide a title, and a summary of the sections that were grouped together.
-- Group at least three sections together.
+Given the transcript and the timestamp of images (if available). Identify any
+significant changes in the conversation and topics discussed.
 
 Template of the output YAML format:
 
 - start: "[hour]:[minute]:[second]"
-  title: "[Section summary]"
-  description: "[Longer description]"
+  title: "[Summary of new topic]"
+  description: "[Longer description of what the conversation is about]"
 ... more summary entries...
 
 Example:
 
 - start: "00:03:15"
-  title: "Overview of the camping trip."
+  title: "Overview of the camping trip"
   description: |
     The group discussed the a camping trip to Novia Scotia. They talked about
     where it would be and then what kinds of things they thouht they'd want to
@@ -80,7 +78,7 @@ Example:
 
 TITLE_TEMPLATE = """\
 Input:
-{transcript_text}
+{source_text}
 
 ***
 

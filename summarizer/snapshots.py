@@ -1,6 +1,8 @@
 import logging
+import json
 import os
 import subprocess
+from typing import Dict, List, TypedDict
 
 from .ffmpeg import take_snapshot
 from .vtt import extract_transcript_start_times, time_string_to_seconds
@@ -76,20 +78,19 @@ async def create_snapshots_at_time_increments(
         previous_snapshot_path = snapshot_path
 
 
-def create_snapshots_file(dir: str):
-    if os.path.exists(os.path.join(dir, "snapshots/index.html")):
-        return
+class SnapshotDict(TypedDict):
+    start: str
+    source: str
 
-    snapshot_files = [f for f in os.listdir(dir) if f.endswith(".jpg")]
+def create_snapshots_file(dir: str) -> List[SnapshotDict]:
+    snapshots_file = os.path.join(dir, "snapshots", "snapshots.json")
+    snapshot_files = [f for f in os.listdir(os.path.join(dir, "snapshots")) if f.endswith(".jpg")]
 
     # Generate HTML for each snapshot
-    snapshot_html = []
-    for filename in snapshot_files:
-        file_name_without_extension = os.path.splitext(filename)[0]
-        start_time = file_name_without_extension.replace("_", ":")
-        snapshot_html.append(f"<img data-start='{start_time}' src='snapshots/{filename}'>")
-
+    snapshots_json = [SnapshotDict(start=os.path.splitext(s)[0].replace("_", ":"), source=f"snapshots/{s}") for s in snapshot_files]
     logger.info("Saving snapshots to file...")
     os.makedirs(os.path.join(dir, "snapshots"), exist_ok=True)
-    with open(os.path.join(dir, "snapshots/index.html"), "w") as file:
-        file.write("\n".join(snapshot_html))
+    with open(snapshots_file, "w") as file:
+        file.write(json.dumps(snapshots_json, indent=2))
+
+    return snapshots_json
