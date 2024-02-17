@@ -18,9 +18,9 @@ langchain = "^0.1.4"
 langgraph = "^0.0.19"
 langchain-openai = "^0.0.5"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^8.0.1"
-pytest-cov = "^3.0.0"
+pytest-cov = "^4.1.0"
 
 [tool.pytest.ini_options]
 python_paths = ["summarizer"]
