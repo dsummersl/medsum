@@ -1,18 +1,17 @@
 import pytest
-import pytest_asyncio
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 import llm
-from llm import openai_client
 
 @pytest.mark.asyncio
 async def test_create_transcript(monkeypatch):
     monkeypatch.setattr('os.path.exists', lambda _: False)
-    monkeypatch.setattr('os.makedirs', lambda _: None)
-    monkeypatch.setattr('llm.openai_client.audio.transcriptions.create', lambda _, __, ___: 'transcript')
+    monkeypatch.setattr('llm.os.makedirs', lambda _, exist_ok: None)
+    monkeypatch.setattr('llm.openai_client.audio.transcriptions.create', AsyncMock(return_value='llm-result'))
     with patch('builtins.open', new_callable=MagicMock) as mock_open:
         await llm.create_transcript('media_path', 'dir')
+        mock_open.assert_called_once_with('media_path', 'rb')
         mock_open.assert_called_once_with('dir/transcript.vtt', 'w')
-        mock_open().write.assert_called_once_with('transcript')
+        mock_open().write.assert_called_once_with('llm-result')
 
 @pytest.mark.asyncio
 async def test_chat():
