@@ -2,6 +2,7 @@ import logging
 import os
 import yaml
 import json
+import re
 
 from langchain_openai import ChatOpenAI
 from openai import AsyncOpenAI
@@ -23,7 +24,19 @@ openai_client = AsyncOpenAI()
 
 
 def convert_transcript_to_json(transcript: str) -> dict:
-    pass
+    """
+    Convert VTT transcript text to JSON format.
+    """
+    vtt = WebVTT.read_buffer(transcript)
+    entries = [
+        {
+            "start": caption.start_in_seconds,
+            "end": caption.end_in_seconds,
+            "text": caption.text.strip(),
+        }
+        for caption in vtt
+    ]
+    return {"transcript": entries}
 
 
 async def create_transcript(media_path: str, dir: str):

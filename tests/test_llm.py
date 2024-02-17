@@ -44,3 +44,14 @@ async def test_chat():
         assert response == 'content'
         assert '<|end|>' not in response
         mock_chat.assert_called_once_with('prompt')
+from webvtt import WebVTT
+
+@pytest.mark.asyncio
+async def test_convert_transcript_to_json():
+    json_output = llm.convert_transcript_to_json(VTT)
+    assert isinstance(json_output, dict)
+    assert "transcript" in json_output
+    assert len(json_output["transcript"]) == 4  # Number of captions in the VTT example
+    assert json_output["transcript"][0]["start"] == 1.5
+    assert json_output["transcript"][0]["end"] == 2.2
+    assert json_output["transcript"][0]["text"] == "Hi everybody."
