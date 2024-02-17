@@ -48,6 +48,11 @@ def extract_transcript_start_times(dir: str):
             for pattern in patterns:
                 match = pattern.search(line)
                 if match:
-                    start_times.append(match.group(1))
+                    time_str = match.group(1)
+                # Normalize to HH:MM:SS format
+                normalized_time = time_string_to_seconds(time_str)
+                hours, remainder = divmod(normalized_time, 3600)
+                minutes, seconds = divmod(remainder, 60)
+                start_times.append(f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}")
                     break
     return start_times

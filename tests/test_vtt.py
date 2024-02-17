@@ -25,4 +25,4 @@ consectetur adipiscing elit,
     with patch("builtins.open", mock_open(read_data=mock_vtt_content)):
         with patch("os.path.join", return_value="transcript.vtt"):
             start_times = extract_transcript_start_times(".")
-            assert start_times == ["00:00:00.000", "00:00:05.000"]
+            assert start_times == ["00:00:00", "00:00:05"]
