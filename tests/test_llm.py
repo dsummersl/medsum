@@ -5,11 +5,11 @@ import llm
 from llm import openai_client
 
 @pytest.mark.asyncio
-async def test_create_transcript():
-    with patch('os.path.exists', return_value=False), \
-         patch('openai.AsyncOpenAI.audio.transcriptions.create', return_value='transcript'), \
-         patch('os.makedirs'), \
-         patch('builtins.open', new_callable=MagicMock) as mock_open:
+async def test_create_transcript(monkeypatch):
+    monkeypatch.setattr('os.path.exists', lambda _: False)
+    monkeypatch.setattr('os.makedirs', lambda _: None)
+    monkeypatch.setattr('llm.openai_client.audio.transcriptions.create', lambda _, __, ___: 'transcript')
+    with patch('builtins.open', new_callable=MagicMock) as mock_open:
         await llm.create_transcript('media_path', 'dir')
         mock_open.assert_called_once_with('dir/transcript.vtt', 'w')
         mock_open().write.assert_called_once_with('transcript')
