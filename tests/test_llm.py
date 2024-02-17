@@ -7,7 +7,15 @@ async def test_create_transcript(monkeypatch):
     monkeypatch.setattr('os.path.exists', lambda _: False)
     monkeypatch.setattr('llm.os.makedirs', lambda _, exist_ok: None)
     monkeypatch.setattr('llm.openai_client.audio.transcriptions.create', AsyncMock(return_value='llm-result'))
-    with patch('builtins.open', new_callable=MagicMock) as mock_open:
+    def side_effect(*args, **kwargs):
+        if args[0] == 'media_path' and args[1] == 'rb':
+            return MagicMock()
+        elif args[0] == 'dir/transcript.vtt' and args[1] == 'w':
+            return MagicMock()
+        else:
+            raise ValueError("Unexpected arguments!")
+
+    with patch('builtins.open', new_callable=MagicMock, side_effect=side_effect) as mock_open:
         await llm.create_transcript('media_path', 'dir')
         mock_open.assert_called_once_with('media_path', 'rb')
         mock_open.assert_called_once_with('dir/transcript.vtt', 'w')
