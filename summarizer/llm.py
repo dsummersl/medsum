@@ -3,6 +3,7 @@ import os
 import yaml
 import json
 from webvtt import WebVTT
+from webvtt import WebVTT
 import re
 
 from langchain_openai import ChatOpenAI
@@ -62,8 +63,9 @@ async def create_transcript(media_path: str, dir: str):
         logger.info("Transcript saved!")
 
         transcript_json = convert_transcript_to_json(transcript.text)
+        transcript_json = convert_transcript_to_json(transcript.text)
         with open(f"{dir}/transcript.json", "w") as f:
-            f.write(json.dumps(transcript_json, indent=2))
+            json.dump(transcript_json, f, indent=2)
 
 
 async def chat(prompt: str) -> str:
@@ -131,3 +133,18 @@ async def generate_summary(
 
     with open(dest, "w") as file:
         file.write(json.dumps(combined_summary, indent=2))
+def convert_transcript_to_json(transcript_text: str) -> dict:
+    """
+    Convert VTT transcript text to JSON format.
+    """
+    vtt = WebVTT.read_buffer(transcript_text)
+    entries = [
+        {
+            "start": caption.start_in_seconds,
+            "end": caption.end_in_seconds,
+            "text": caption.text.strip(),
+        }
+        for caption in vtt
+    ]
+    return {"transcript": entries}
+
