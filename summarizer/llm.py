@@ -2,6 +2,7 @@ import logging
 import os
 import yaml
 import json
+from webvtt import WebVTT
 import re
 
 from langchain_openai import ChatOpenAI
@@ -60,8 +61,9 @@ async def create_transcript(media_path: str, dir: str):
             f.write(transcript.text)
         logger.info("Transcript saved!")
 
-    with open(f"{dir}/transcript.json", "w") as f:
-        f.write(json.dumps(convert_transcript_to_json(transcript)))
+        transcript_json = convert_transcript_to_json(transcript.text)
+        with open(f"{dir}/transcript.json", "w") as f:
+            f.write(json.dumps(transcript_json, indent=2))
 
 
 async def chat(prompt: str) -> str:
