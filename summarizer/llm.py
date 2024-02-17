@@ -22,9 +22,13 @@ logger = logging.getLogger(__name__)
 openai_client = AsyncOpenAI()
 
 
+def convert_transcript_to_json(transcript: str) -> dict:
+    pass
+
+
 async def create_transcript(media_path: str, dir: str):
-    """Use openai speech-to-text to extract audio, and save it to 'dir/transcript.vtt'"""
-    if os.path.exists(f"{dir}/transcript.vtt"):
+    """Use openai speech-to-text to extract audio, and save it to 'dir/transcript.json'"""
+    if os.path.exists(f"{dir}/transcript.json"):
         logger.info("Transcript already exists, skipping...")
         return
 
@@ -40,8 +44,11 @@ async def create_transcript(media_path: str, dir: str):
         os.makedirs(dir, exist_ok=True)
 
         with open(f"{dir}/transcript.vtt", "w") as f:
-            f.write(transcript)
+            f.write(transcript.text)
         logger.info("Transcript saved!")
+
+    with open(f"{dir}/transcript.json", "w") as f:
+        f.write(json.dumps(convert_transcript_to_json(transcript)))
 
 
 async def chat(prompt: str) -> str:
