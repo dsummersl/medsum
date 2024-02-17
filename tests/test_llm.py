@@ -1,7 +1,9 @@
 import pytest
+import pytest_asyncio
 from unittest.mock import patch, MagicMock
 import llm
 
+@pytest.mark.asyncio
 async def test_create_transcript():
     with patch('os.path.exists', return_value=False), \
          patch('openai.AsyncOpenAI.audio.transcriptions.create', return_value='transcript'), \
@@ -11,6 +13,7 @@ async def test_create_transcript():
         mock_open.assert_called_once_with('dir/transcript.vtt', 'w')
         mock_open().write.assert_called_once_with('transcript')
 
+@pytest.mark.asyncio
 async def test_chat():
     with patch('llm.ChatOpenAI.ainvoke', return_value=MagicMock(content='content<|end|>')) as mock_chat:
         response = await llm.chat('prompt')
@@ -18,6 +21,7 @@ async def test_chat():
         assert '<|end|>' not in response
         mock_chat.assert_called_once_with('prompt')
 
+@pytest.mark.asyncio
 async def test_generate_summary():
     with patch('os.path.exists', return_value=False), \
          patch('builtins.open', new_callable=MagicMock) as mock_open, \
