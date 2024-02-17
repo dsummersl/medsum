@@ -27,14 +27,15 @@ two separate parts.
 async def test_create_transcript(monkeypatch):
     monkeypatch.setattr('os.path.exists', lambda _: False)
     monkeypatch.setattr('llm.os.makedirs', lambda _, exist_ok: None)
-    monkeypatch.setattr('llm.openai_client.audio.transcriptions.create', AsyncMock(return_value=VTT))
+    transcript_mock = MagicMock(text=VTT)
+    monkeypatch.setattr('llm.openai_client.audio.transcriptions.create', AsyncMock(return_value=transcript_mock))
     with patch('builtins.open') as mock_open:
         await llm.create_transcript('media_path', 'dir')
         assert mock_open.call_count == 2
         mock_open.assert_any_call('media_path', 'rb')
-        mock_open.assert_any_call('dir/transcript.vtt', 'w')
+        mock_open.assert_any_call('dir/transcript.json', 'w')
         mock_file = mock_open.return_value.__enter__.return_value
-        mock_file.write.assert_called_once_with(VTT)
+        mock_file.write.assert_called_once_with(transcript_mock.text)
 
 @pytest.mark.asyncio
 async def test_chat():
