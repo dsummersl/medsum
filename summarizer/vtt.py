@@ -51,5 +51,3 @@ def extract_transcript_start_times(dir: str):
                     start_times.append(match.group(1))
                     break
     return start_times
-
-
