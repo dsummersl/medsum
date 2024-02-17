@@ -1,5 +1,5 @@
 [tool.pyright]
-include = ["summarizer", "tests"]
+extraPaths = ["summarizer"]
 
 [tool.poetry]
 name = "summarizer"

@@ -17,11 +17,11 @@ async def test_chat():
         assert response == 'content'
         mock_chat.assert_called_once_with('prompt')
 
-def test_generate_summary():
+async def test_generate_summary():
     with patch('os.path.exists', return_value=False), \
          patch('builtins.open', new_callable=MagicMock) as mock_open, \
          patch('llm.chat', return_value='summary') as mock_chat:
-        llm.generate_summary('source', 'dest', 'template', False)
+        await llm.generate_summary('source', 'dest', 'template', False)
         mock_open.assert_called_once_with('source', 'r')
         mock_chat.assert_called()
         mock_open().write.assert_called()
