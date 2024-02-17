@@ -12,9 +12,10 @@ async def test_create_transcript():
         mock_open().write.assert_called_once_with('transcript')
 
 async def test_chat():
-    with patch('llm.ChatOpenAI.ainvoke', return_value=MagicMock(content='content')) as mock_chat:
+    with patch('llm.ChatOpenAI.ainvoke', return_value=MagicMock(content='content<|end|>')) as mock_chat:
         response = await llm.chat('prompt')
         assert response == 'content'
+        assert '<|end|>' not in response
         mock_chat.assert_called_once_with('prompt')
 
 async def test_generate_summary():
