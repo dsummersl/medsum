@@ -16,6 +16,9 @@ langgraph = "^0.0.19"
 langchain-openai = "^0.0.5"
 pytest = "^8.0.1"
 
+[tool.pytest.ini_options]
+python_paths = ["summarizer"]
+
 [tool.poetry.scripts]
 tldl = "summarizer.summarizer:cli"
 
