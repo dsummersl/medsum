@@ -2,6 +2,7 @@ import pytest
 import pytest_asyncio
 from unittest.mock import patch, MagicMock
 import llm
+from llm import openai_client
 
 @pytest.mark.asyncio
 async def test_create_transcript():
