@@ -18,7 +18,7 @@ from .snapshots import (
     create_snapshots_file,
     logger as snapshots_logger,
 )
-from .llm import create_transcript, generate_summary
+from .llm import create_transcript, generate_summary, convert_transcript_to_json
 
 
 logger = logging.getLogger(__name__)
@@ -125,9 +125,9 @@ async def update_index(
     if transcript:
         logger.info(f"Using supplied transcript: {transcript}")
         os.makedirs(dirname, exist_ok=True)
-        if transcript != f"{dirname}/transcript.json":
-            shutil.copy(transcript, f"{dirname}/transcript.json")
-        transcript_json = json.loads(open(transcript).read())
+        if transcript != f"{dirname}/transcript.vtt":
+            shutil.copy(transcript, f"{dirname}/transcript.vtt")
+        transcript_json = convert_transcript_to_json(transcript)
     elif not os.path.exists(f"{dir}/transcript.json"):
         print("Generating transcript...") if not quiet else None
         transcript_json = await create_transcript(f"{dirname}/audio.mp3", dirname)
