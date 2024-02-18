@@ -83,6 +83,7 @@ tldl update-index /path/to/summary-directory
 - Improve the image snapshots - currently..._way_ too limited.
 - TODO use non-openai or at least make it configurable.
 - support markdown and katex: https://www.npmjs.com/package/marked-katex-extension
+- add anchors https://www.npmjs.com/package/anchor-js
 
 # Limitations
 
