@@ -54,7 +54,7 @@ async def create_index(dir: str, output_path: str, title: str):
     with open(os.path.join(dir, "title.json"), "r") as file:
         title_data = json.loads(file.read())
 
-    with open(os.path.join(dir, "transcript.vtt"), "r") as file:
+    with open(os.path.join(dir, "transcript.json"), "r") as file:
         transcript = file.read()
 
     snapshots = ""
@@ -127,7 +127,7 @@ async def update_index(
         os.makedirs(dirname, exist_ok=True)
         if transcript != f"{dirname}/transcript.vtt":
             shutil.copy(transcript, f"{dirname}/transcript.vtt")
-        transcript_json = convert_transcript_to_json(transcript)
+        transcript_json = convert_transcript_to_json(f"{dirname}/transcript.vtt")
     elif not os.path.exists(f"{dir}/transcript.json"):
         print("Generating transcript...") if not quiet else None
         transcript_json = await create_transcript(f"{dirname}/audio.mp3", dirname)

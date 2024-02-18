@@ -1,4 +1,5 @@
 import logging
+from os.path import dirname
 import time
 import os
 from typing import Dict, List
@@ -42,6 +43,8 @@ def convert_transcript_to_json(transcript_path: str) -> List[Dict]:
         }
         for caption in vtt
     ]
+    with open(f"{dirname(transcript_path)}/transcript.json", "w") as f:
+        f.write(json.dumps(entries, indent=2))
     return entries
 
 
@@ -66,11 +69,7 @@ async def create_transcript(media_path: str, dir: str) -> List[Dict]:
         logger.info("Transcript already exists, skipping...")
         return json.loads(open(f"{dir}/transcript.json").read())
 
-    transcript_json = convert_transcript_to_json(f"{dir}/transcript.vtt")
-    with open(f"{dir}/transcript.json", "w") as f:
-        f.write(json.dumps(transcript_json, indent=2))
-
-    return transcript_json
+    return convert_transcript_to_json(f"{dir}/transcript.vtt")
 
 
 async def chat(prompt: str) -> str:

@@ -23,12 +23,11 @@ async def test_create_transcript(monkeypatch):
     monkeypatch.setattr("llm.convert_transcript_to_json", lambda _: SAMPLE_TRANSCRIPT)
     with patch("builtins.open") as mock_open:
         await llm.create_transcript("media_path", "dir")
-        assert mock_open.call_count == 3
+        assert mock_open.call_count == 2
         mock_open.assert_any_call("media_path", "rb")
         mock_open.assert_any_call("dir/transcript.vtt", "w")
         mock_file = mock_open.return_value.__enter__.return_value
         mock_file.write.assert_any_call(VTT)
-        mock_file.write.assert_any_call(json.dumps(SAMPLE_TRANSCRIPT, indent=2))
 
 
 @pytest.mark.asyncio
