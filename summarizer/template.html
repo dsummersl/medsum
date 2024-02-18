@@ -34,13 +34,6 @@
       flex: 1 1 66%;
     }
 
-    .vtt-container {
-      flex: 1 1 33%;
-      white-space: pre-wrap;
-      /* To preserve formatting of VTT file */
-      display: none;
-    }
-
     .audio-container {
       display: flex;
       justify-content: space-between;
@@ -68,16 +61,6 @@
 
     .snapshots-container img:first-child {
       display: block; /* Only display the first image */
-    }
-
-    .vtt-container div {
-      font:
-        10px Arial,
-        monospace;
-    }
-
-    .vtt-container div[data-start] {
-      margin-top: 10px;
     }
 
     .chapters-container>div {
@@ -212,6 +195,7 @@
     }
 
     function centerOnPlayingElement() {
+      // TODO rewrite
       var playingElement = document.querySelector(".vtt-container .playing");
       if (playingElement) {
         var container = document.querySelector(".vtt-container");
@@ -304,31 +288,13 @@
     }
 
     function preprocessVTTContent() {
-      let vttContainer = document.querySelector(".vtt-container");
-      let lines = vttContainer.textContent.split("\n");
-      let processedHTML = "";
-      let currentChapter = null;
-      let currentSummary = null;
+      TRANSCRIPT.forEach(function (entry) {
+        const start = entry.start;
+        const end = entry.end;
+        const text = entry.text;
 
-      lines.forEach(function (line) {
-        let chapterMatch = line.match(/^\s*Chapter\s+(\d+): (.*)$/);
-        let summaryMatch = line.match(/^\s*Summary\s+(\d+): (.*)$/);
-        let transcriptMatch = line.match(/^\s*(\d\d:\d\d:\d\d)\s+(.*)$/);
-
-        if (chapterMatch) {
-          currentChapter = document.querySelector(`div[data-chapter-start="${chapterMatch[1]}"]`);
-        } else if (summaryMatch) {
-          currentSummary = currentChapter.querySelector(`div[data-start="${summaryMatch[1]}"]`);
-        } else if (transcriptMatch && currentSummary) {
-          let start = transcriptMatch[1];
-          let text = transcriptMatch[2];
-          processedHTML += `<div data-start="${start}">${text.trim()}</div>`;
-        }
+        // TODO attach to the correct summary .transcripts element
       });
-
-      if (currentSummary) {
-        currentSummary.innerHTML += processedHTML;
-      }
     }
 
     function preprocessSnapshots() {
@@ -368,10 +334,12 @@
           let description = summary.description;
           let summaryDiv = document.createElement("div");
           summaryDiv.setAttribute("data-start", start);
+          summaryDiv.setAttribute("class", "summary-container");
           summaryDiv.innerHTML = `
             <p>
               <b>${start}</b> : ${description}
             </p>
+            <div class="transcripts"></div>
           `;
           chapterDiv.appendChild(summaryDiv);
         });
@@ -405,9 +373,9 @@
 
     document.addEventListener("DOMContentLoaded", function () {
       insertImages();
-      preprocessVTTContent();
       preprocessChapters();
       preprocessSnapshots();
+      preprocessVTTContent();
 
       let summaryDivs = document.querySelectorAll("div[data-start]");
       summaryDivs.forEach(function (div) {
@@ -427,10 +395,6 @@
 
       let audioPlayer = document.getElementById("audioPlayer");
       audioPlayer.addEventListener("timeupdate", updateHighlightBasedOnTime);
-
-      document
-        .getElementById("toggleTranscript")
-        .addEventListener("click", () => toggleContainer(".vtt-container"));
     });
   </script>
 </head>
