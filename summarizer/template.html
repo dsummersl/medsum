@@ -221,25 +221,17 @@
       <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
       Your browser does not support the audio element.
     </audio>
-    <div class="snapshots-container flex-1 h-full flex items-center justify-end overflow-hidden mr-5 cursor-pointer"></div>
+    <div class="snapshots-container flex-1 h-full flex items-center justify-end overflow-hidden cursor-pointer"></div>
   </div>
 </body>
 </html>
 <style>
 .audio-player-expanded {
-  height: calc(80vh - 4.5rem); /* Adjust height to account for padding and snapshot image */
-  padding-top: 1rem; /* Add padding between the snapshot and the audio player */
+  height: 80vh;
+  flex-direction: column-reverse;
 }
 .audio-player-collapsed {
   height: 100px;
-}
-.snapshot-maximized {
-  position: absolute;
-  bottom: calc(80vh - 3.5rem); /* Position the snapshot above the audio player with padding */
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
 }
 </style>
 <script>
@@ -247,31 +239,20 @@
     const audioPlayerContainer = document.getElementById('audioPlayerContainer');
     const expandPlayerIcon = document.getElementById('expandPlayerIcon');
     const snapshotsContainer = document.querySelector('.snapshots-container');
-    let isMaximized = false; // Track the maximized state
 
     expandPlayerIcon.addEventListener('click', function () {
       if (audioPlayerContainer.classList.contains('audio-player-expanded')) {
         audioPlayerContainer.classList.remove('audio-player-expanded');
         audioPlayerContainer.classList.add('audio-player-collapsed');
         expandPlayerIcon.querySelector('svg').classList.remove('rotate-180');
-        snapshotsContainer.classList.remove('snapshot-maximized');
-        isMaximized = false;
       } else {
         audioPlayerContainer.classList.remove('audio-player-collapsed');
         audioPlayerContainer.classList.add('audio-player-expanded');
         expandPlayerIcon.querySelector('svg').classList.add('rotate-180');
-        snapshotsContainer.classList.add('snapshot-maximized');
-        isMaximized = true;
       }
     });
 
     snapshotsContainer.addEventListener('click', function () {
-      if (!isMaximized) {
-        audioPlayerContainer.classList.add('audio-player-expanded');
-        expandPlayerIcon.querySelector('svg').classList.add('rotate-180');
-        snapshotsContainer.classList.add('snapshot-maximized');
-        isMaximized = true;
-      }
       audioPlayerContainer.classList.add('audio-player-expanded');
       expandPlayerIcon.querySelector('svg').classList.add('rotate-180');
     });
