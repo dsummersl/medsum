@@ -202,7 +202,7 @@
   </script>
 </head>
 
-<body>
+<body class="relative">
   <div class="prose max-w-full text-center bg-white">
     <h1 class="">[[title]]</h1>
   </div>
@@ -213,12 +213,49 @@
       </div>
     </div>
   </div>
-  <div class="flex justify-between items-center h-24 bg-gray-200 fixed bottom-0 left-0 right-0 z-10">
+  <div id="audioPlayerContainer" class="flex justify-between items-center h-24 bg-gray-200 fixed bottom-0 left-0 right-0 z-10">
+  <div id="expandPlayerIcon" class="absolute top-0 left-1/2 transform -translate-x-1/2 cursor-pointer z-20">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+    </svg>
+  </div>
     <audio id="audioPlayer" class="ml-5" controls>
       <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
       Your browser does not support the audio element.
     </audio>
-    <div class="snapshots-container flex-1 h-full flex items-center justify-end overflow-hidden mr-5"></div>
+    <div class="snapshots-container flex-1 h-full flex items-center justify-end overflow-hidden mr-5 cursor-pointer"></div>
   </div>
 </body>
 </html>
+<style>
+.audio-player-expanded {
+  height: 80vh;
+}
+.audio-player-collapsed {
+  height: 100px;
+}
+</style>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const audioPlayerContainer = document.getElementById('audioPlayerContainer');
+    const expandPlayerIcon = document.getElementById('expandPlayerIcon');
+    const snapshotsContainer = document.querySelector('.snapshots-container');
+
+    expandPlayerIcon.addEventListener('click', function () {
+      if (audioPlayerContainer.classList.contains('audio-player-expanded')) {
+        audioPlayerContainer.classList.remove('audio-player-expanded');
+        audioPlayerContainer.classList.add('audio-player-collapsed');
+        expandPlayerIcon.querySelector('svg').classList.remove('rotate-180');
+      } else {
+        audioPlayerContainer.classList.remove('audio-player-collapsed');
+        audioPlayerContainer.classList.add('audio-player-expanded');
+        expandPlayerIcon.querySelector('svg').classList.add('rotate-180');
+      }
+    });
+
+    snapshotsContainer.addEventListener('click', function () {
+      audioPlayerContainer.classList.add('audio-player-expanded');
+      expandPlayerIcon.querySelector('svg').classList.add('rotate-180');
+    });
+  });
+</script>
