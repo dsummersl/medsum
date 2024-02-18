@@ -2,7 +2,11 @@
 <html>
 
 <head>
-  <title>[[title]] Transcript Summary</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
   <style>
     body {
       margin: 0px;
@@ -138,7 +142,8 @@
       /* Text color */
     }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <title>[[title]] Transcript Summary</title>
   <script>
     const CHAPTERS = [[chapters]];
     const SNAPSHOTS = [[snapshots]];
@@ -337,11 +342,9 @@
         ".chapters-container",
       );
       CHAPTERS.forEach((chapter) => {
-        let start = chapter.start;
         let title = chapter.title;
         let description = chapter.description;
         let chapterDiv = document.createElement("div");
-        chapterDiv.setAttribute("data-chapter-start", start);
         chapterDiv.innerHTML = `
           <h2>${marked.parse(title)}</h2>
           <p>${marked.parse(description)}</p>
@@ -427,7 +430,7 @@
 
   <div class="main-container">
     <div class="container chapters-container">
-      <div class="container summary-container">[[description]]</div>
+      <div class="container">[[description]]</div>
     </div>
   </div>
 
