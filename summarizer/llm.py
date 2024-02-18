@@ -41,33 +41,33 @@ def convert_transcript_to_json(transcript_path: str) -> dict:
         }
         for caption in vtt
     ]
-    return {"transcript": entries}
+    return entries
 
 
 async def create_transcript(media_path: str, dir: str):
     """Use openai speech-to-text to extract audio, and save it to 'dir/transcript.json'"""
-    if os.path.exists(f"{dir}/transcript.json"):
+    if not os.path.exists(f"{dir}/transcript.json"):
+        with open(media_path, "rb") as f:
+            logger.info("Transcribing audio...")
+            transcript = await openai_client.audio.transcriptions.create(
+                file=f, model="whisper-1", response_format="vtt"
+            )
+            logger.info("Transcription complete!")
+
+            #  Save the transcription to 'dir/transcript.md'
+            logger.info("Saving transcript...")
+            os.makedirs(dir, exist_ok=True)
+
+            with open(f"{dir}/transcript.vtt", "w") as f:
+                f.write(transcript)
+            logger.info("Transcript saved!")
+    else:
         logger.info("Transcript already exists, skipping...")
         return
 
-    with open(media_path, "rb") as f:
-        logger.info("Transcribing audio...")
-        transcript = await openai_client.audio.transcriptions.create(
-            file=f, model="whisper-1", response_format="vtt"
-        )
-        logger.info("Transcription complete!")
-
-        #  Save the transcription to 'dir/transcript.md'
-        logger.info("Saving transcript...")
-        os.makedirs(dir, exist_ok=True)
-
-        with open(f"{dir}/transcript.vtt", "w") as f:
-            f.write(transcript.text)
-        logger.info("Transcript saved!")
-
-        transcript_json = convert_transcript_to_json(f"{dir}/transcript.vtt")
-        with open(f"{dir}/transcript.json", "w") as f:
-            f.write(json.dumps(transcript_json, indent=2))
+    transcript_json = convert_transcript_to_json(f"{dir}/transcript.vtt")
+    with open(f"{dir}/transcript.json", "w") as f:
+        f.write(json.dumps(transcript_json, indent=2))
 
 
 async def chat(prompt: str) -> str:

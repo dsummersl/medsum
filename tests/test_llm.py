@@ -13,10 +13,9 @@ with open("tests/fixtures/sample.vtt", "r") as file:
 async def test_create_transcript(monkeypatch):
     monkeypatch.setattr("os.path.exists", lambda _: False)
     monkeypatch.setattr("llm.os.makedirs", lambda _, exist_ok: None)
-    transcript_mock = MagicMock(text=VTT)
     monkeypatch.setattr(
         "llm.openai_client.audio.transcriptions.create",
-        AsyncMock(return_value=transcript_mock),
+        AsyncMock(return_value=VTT),
     )
     SAMPLE_TRANSCRIPT = [
         {"start": "00:00:01", "end": "00:00:02", "text": "Hi everybody."}
@@ -46,9 +45,8 @@ async def test_chat():
 @pytest.mark.asyncio
 async def test_convert_transcript_to_json():
     json_output = llm.convert_transcript_to_json("tests/fixtures/sample.vtt")
-    assert isinstance(json_output, dict)
-    assert "transcript" in json_output
-    assert len(json_output["transcript"]) == 5
-    assert json_output["transcript"][0]["start"] == "00:00:01"
-    assert json_output["transcript"][0]["end"] == "00:00:02"
-    assert json_output["transcript"][0]["text"] == "Hi everybody."
+    assert isinstance(json_output, list)
+    assert len(json_output) == 5
+    assert json_output[0]["start"] == "00:00:01"
+    assert json_output[0]["end"] == "00:00:02"
+    assert json_output[0]["text"] == "Hi everybody."
