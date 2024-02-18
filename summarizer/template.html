@@ -217,7 +217,7 @@
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
     </svg>
   </div>
-    <audio id="audioPlayer" class="ml-5" controls>
+    <audio id="audioPlayer" class="mx-5 lg:w-4/5 md:w-2/3" controls>
       <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
       Your browser does not support the audio element.
     </audio>
@@ -230,14 +230,12 @@
   height: 80vh;
   flex-direction: column-reverse;
 }
+.audio-player-expanded #audioPlayer {
+  margin-top: 5px;
+  width: 100%;
+}
 .audio-player-collapsed {
   height: 100px;
-  width: calc(100% - 4rem); /* Adjust width to leave space for the snapshot */
-  transition: width 0.3s; /* Smooth transition for width changes */
-}
-.snapshots-container {
-  width: 4rem; /* Set a fixed width for the snapshot container in minimized mode */
-  transition: width 0.3s; /* Smooth transition for width changes */
 }
 </style>
 <script>
@@ -245,28 +243,21 @@
     const audioPlayerContainer = document.getElementById('audioPlayerContainer');
     const expandPlayerIcon = document.getElementById('expandPlayerIcon');
     const snapshotsContainer = document.querySelector('.snapshots-container');
-    const audioPlayer = document.getElementById('audioPlayer');
 
     expandPlayerIcon.addEventListener('click', function () {
       if (audioPlayerContainer.classList.contains('audio-player-expanded')) {
         audioPlayerContainer.classList.remove('audio-player-expanded');
         audioPlayerContainer.classList.add('audio-player-collapsed');
-        snapshotsContainer.style.width = '4rem';
-        audioPlayerContainer.style.width = 'calc(100% - 4rem)';
         expandPlayerIcon.querySelector('svg').classList.remove('rotate-180');
       } else {
         audioPlayerContainer.classList.remove('audio-player-collapsed');
         audioPlayerContainer.classList.add('audio-player-expanded');
-        snapshotsContainer.style.width = '100%';
-        audioPlayerContainer.style.width = '100%';
         expandPlayerIcon.querySelector('svg').classList.add('rotate-180');
       }
     });
 
     snapshotsContainer.addEventListener('click', function () {
       audioPlayerContainer.classList.add('audio-player-expanded');
-      snapshotsContainer.style.width = '100%';
-      audioPlayerContainer.style.width = '100%';
       expandPlayerIcon.querySelector('svg').classList.add('rotate-180');
     });
   });
