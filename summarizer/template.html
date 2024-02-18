@@ -13,85 +13,6 @@
     const SNAPSHOTS = [[snapshots]];
     const TRANSCRIPT = [[transcript]];
 
-    function insertImages() {
-      var summaries = document.querySelectorAll(
-        ".chapters-container div[data-start]",
-      );
-      var snapshots = document.querySelectorAll(".snapshots-container img");
-
-      summaries.forEach(function (summary) {
-        var startTime = summary.getAttribute("data-start");
-        var imageName = startTimeToImageName(startTime);
-        var startSeconds = timeStringToSeconds(startTime);
-
-        // Move existing children (except img) to textContent div
-        var textContent = document.createElement("div");
-        textContent.className = "text-content";
-        Array.from(summary.childNodes).forEach(function (child) {
-          textContent.appendChild(child);
-        });
-
-        var imageContent = document.createElement("div");
-        imageContent.className = "img-content";
-        var images = Array.from(snapshots).forEach(function (snapshot, i) {
-          var snapshotStart = timeStringToSeconds(
-            snapshot.getAttribute("data-start"),
-          );
-          if (snapshotStart < startSeconds) return;
-
-          if (imageContent.children.length === 0) {
-            snapshot.classList.add("active");
-          }
-
-          imageContent.appendChild(snapshot);
-          var zoomedContainer = document.querySelector(".zoomed");
-          var zoomedImage = zoomedContainer.querySelector("img");
-          var legend = zoomedContainer.querySelector(".legend");
-          snapshot.onmouseover = function () {
-            zoomedContainer.style.display = "block";
-            zoomedImage.src = snapshot.src;
-            var legend = zoomedContainer.querySelector(".legend");
-            legend.textContent =
-              "Start Time: " + this.getAttribute("data-start");
-          };
-          snapshot.onmouseout = function () {
-            zoomedContainer.style.display = "none";
-          };
-        });
-
-        summary.appendChild(textContent);
-        summary.appendChild(imageContent);
-      });
-    }
-
-    function centerOnPlayingElement() {
-      // TODO rewrite
-      var playingElement = document.querySelector(".vtt-container .playing");
-      if (playingElement) {
-        var container = document.querySelector(".vtt-container");
-        var elementRect = playingElement.getBoundingClientRect();
-        var containerRect = container.getBoundingClientRect();
-
-        // Calculate the position to scroll to
-        var scrollTo =
-          playingElement.offsetTop -
-          container.offsetTop -
-          containerRect.height / 2 +
-          elementRect.height / 2;
-
-        // Scroll the container
-        container.scrollTop = scrollTo;
-      }
-    }
-
-    function startTimeToImageName(startTime) {
-      // Assuming startTime format is 'mm:ss'
-      var parts = startTime.split(":");
-      var minutes = parts[0];
-      var seconds = parts[1];
-      return minutes + "_" + seconds + ".jpg";
-    }
-
     function setAudioPlayerOffset(start) {
       var audioPlayer = document.getElementById("audioPlayer");
       var source = document.getElementById("audioSource");
@@ -131,8 +52,6 @@
       markPlayingElement(
         document.querySelectorAll(".vtt-container div[data-start]"),
       );
-
-      centerOnPlayingElement();
 
       displayClosestImage(currentTime);
     }
@@ -256,16 +175,7 @@
       return hours * 3600 + minutes * 60 + seconds;
     }
 
-    function toggleContainer(container) {
-      let containers = document.querySelectorAll(container);
-      Array.from(containers).forEach(function (container) {
-        container.style.display =
-          container.style.display === "block" ? "none" : "block";
-      });
-    }
-
     document.addEventListener("DOMContentLoaded", function () {
-      insertImages();
       preprocessChapters();
       preprocessSnapshots();
       preprocessVTTContent();
@@ -309,10 +219,6 @@
       Your browser does not support the audio element.
     </audio>
     <div class="snapshots-container flex-1 h-full flex items-center justify-end overflow-hidden mr-5"></div>
-  </div>
-  <div class="zoomed fixed z-10 hidden top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-md shadow-lg">
-    <img src="" alt="" class="max-w-full h-auto" />
-    <div class="legend text-center mt-2 text-lg text-gray-800"></div>
   </div>
 </body>
 </html>
