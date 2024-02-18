@@ -304,21 +304,31 @@
     }
 
     function preprocessVTTContent() {
-      //let vttContainer = document.querySelector(".vtt-container");
-      //let lines = vttContainer.textContent.split("\n");
-      //let processedHTML = "";
+      let vttContainer = document.querySelector(".vtt-container");
+      let lines = vttContainer.textContent.split("\n");
+      let processedHTML = "";
+      let currentChapter = null;
+      let currentSummary = null;
 
-      //lines.forEach(function (line) {
-      //  let matches = line.match(/^\s*(\d\d:\d\d:\d\d)/);
-      //  if (matches) {
-      //    let start = matches[1];
-      //    processedHTML += `<div data-start="${start}">${line.trim()}</div>`;
-      //  } else {
-      //    processedHTML += `<div>${line.trim()}</div>`;
-      //  }
-      //});
+      lines.forEach(function (line) {
+        let chapterMatch = line.match(/^\s*Chapter\s+(\d+): (.*)$/);
+        let summaryMatch = line.match(/^\s*Summary\s+(\d+): (.*)$/);
+        let transcriptMatch = line.match(/^\s*(\d\d:\d\d:\d\d)\s+(.*)$/);
 
-      //vttContainer.innerHTML = processedHTML;
+        if (chapterMatch) {
+          currentChapter = document.querySelector(`div[data-chapter-start="${chapterMatch[1]}"]`);
+        } else if (summaryMatch) {
+          currentSummary = currentChapter.querySelector(`div[data-start="${summaryMatch[1]}"]`);
+        } else if (transcriptMatch && currentSummary) {
+          let start = transcriptMatch[1];
+          let text = transcriptMatch[2];
+          processedHTML += `<div data-start="${start}">${text.trim()}</div>`;
+        }
+      });
+
+      if (currentSummary) {
+        currentSummary.innerHTML += processedHTML;
+      }
     }
 
     function preprocessSnapshots() {
