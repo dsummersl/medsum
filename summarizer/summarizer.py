@@ -138,11 +138,11 @@ async def update_index(
     snapshots = create_snapshots_file(dirname)
 
     print("Generating chapters...") if not quiet else None
-    snapshot_text = (
-        "Snapshots:\n"
-        + "\n".join([f"{s['start']} : {s['source']}" for s in snapshots])
-        + "\n\nTranscript:\n"
-    )
+    # snapshot_text = (
+    #     "Snapshots:\n"
+    #     + "\n".join([f"{s['start']} : {s['source']}" for s in snapshots])
+    #     + "\n\nTranscript:\n"
+    # )
     transcript_text = "\n".join(
         [f"{s['start']} : {s['text']}" for s in transcript_json]
     )
@@ -151,9 +151,7 @@ async def update_index(
         transcript_text,
         os.path.join(dirname, "chapters.json"),
         SUMMARY_TEMPLATE,
-        quiet,
-        None,
-        snapshot_text,
+        quiet
     )
 
     print("Generating title...") if not quiet else None
