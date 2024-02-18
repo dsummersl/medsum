@@ -58,8 +58,8 @@ async def create_index(dir: str, output_path: str, title: str):
         transcript = file.read()
 
     snapshots = ""
-    if os.path.exists(os.path.join(dir, "snapshots/index.html")):
-        with open(os.path.join(dir, "snapshots/index.html"), "r") as file:
+    if os.path.exists(os.path.join(dir, "snapshots/snapshots.json")):
+        with open(os.path.join(dir, "snapshots/snapshots.json"), "r") as file:
             snapshots = file.read()
 
     logger.info("Generating index.html...")

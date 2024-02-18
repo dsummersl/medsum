@@ -173,6 +173,7 @@
   </style>
   <script>
     const CHAPTERS = [[chapters]];
+    const SNAPSHOTS = [[snapshots]];
 
     function insertImages() {
       var summaries = document.querySelectorAll(
@@ -265,10 +266,6 @@
     }
 
     function updateHighlightBasedOnTime() {
-      // TODO we have a bug here where the source.src = above is firing an
-      // event with currentTime = 0 and then a real timer, leading to a
-      // flicker on the screen.
-
       let audioPlayer = document.getElementById("audioPlayer");
       let currentTime = audioPlayer.currentTime;
 
@@ -346,15 +343,29 @@
       vttContainer.innerHTML = processedHTML;
     }
 
+    function preprocessSnapshots() {
+      const snapshotsContainer = document.querySelector(
+        ".snapshots-container",
+      );
+      SNAPSHOTS.forEach((snapshot) => {
+        let start = snapshot.start;
+        let source = snapshot.source;
+        let snapshotImage = document.createElement("img");
+        snapshotImage.setAttribute("data-start", start);
+        snapshotImage.setAttribute("src", source);
+        snapshotsContainer.appendChild(snapshotImage);
+      });
+    }
+
     function preprocessChapters() {
+      const chaptersContainer = document.querySelector(
+        ".chapters-container",
+      );
       CHAPTERS.forEach((chapter) => {
         let start = chapter.start;
         let title = chapter.title;
         let description = chapter.description;
         let chapterDiv = document.createElement("div");
-        const chaptersContainer = document.querySelector(
-          ".chapters-container",
-        );
         chapterDiv.setAttribute("data-chapter-start", start);
         chapterDiv.innerHTML = `
           <h2>${title}</h2>
@@ -408,6 +419,7 @@
       insertImages();
       preprocessVTTContent();
       preprocessChapters();
+      preprocessSnapshots();
 
       let summaryDivs = document.querySelectorAll("div[data-start]");
       summaryDivs.forEach(function (div) {
@@ -463,7 +475,7 @@
       <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
       Your browser does not support the audio element.
     </audio>
-    <div class="snapshots-container">[[snapshots]]</div>
+    <div class="snapshots-container"></div>
   </div>
 
   <div class="zoomed">
