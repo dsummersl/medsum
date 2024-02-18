@@ -7,141 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-  <style>
-    body {
-      margin: 0px;
-      font-family: Arial, sans serif;
-    }
-
-    h1 {
-      text-align: center;
-      width: calc(100% - 80px);
-    }
-
-    .header {
-      text-align: center;
-      height: 80px;
-    }
-
-    .container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-    }
-
-    .main-container {
-      display: flex;
-      height: calc(100vh - 100px - 80px - 21px);
-    }
-
-    .chapters-container {
-      flex: 1 1 66%;
-    }
-
-    .audio-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      height: 100px;
-    }
-
-    .snapshots-container {
-      height: 100%; /* Match the height of the audio-container */
-      display: flex;
-      align-items: center; /* Align the image vertically */
-      justify-content: flex-end; /* Align the image to the right */
-      overflow: hidden; /* Hide other images if they don't fit */
-      margin-right: 15px;
-    }
-
-    .snapshots-container audio {
-      margin-left: 10px;
-    }
-
-    .snapshots-container img {
-      display: none; /* Hide all images by default */
-      height: 100%; /* Scale the visible image to fill the container height */
-    }
-
-    .snapshots-container img:first-child {
-      display: block; /* Only display the first image */
-    }
-
-    .chapters-container>div {
-      display: flex;
-      flex-direction: column;
-      margin-bottom: 10px;
-      padding: 10px;
-      transition: background-color 0.3s ease;
-    }
-
-    .text-content {
-      flex: 2 1 66%;
-      margin-right: 10px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .img-content {
-      max-width: 200px;
-      height: auto;
-      margin-left: auto;
-    }
-
-    .img-content img {
-      max-width: 30px;
-      /* Thumbnail size */
-      height: auto;
-      margin: 0 5px;
-      cursor: pointer;
-      opacity: 0.6;
-      transition: all 0.3s ease;
-    }
-
-    .img-content img.active {
-      max-width: 200px;
-      opacity: 1;
-    }
-
-    .chapters-container div[data-start]:hover,
-    .chapters-container div[data-start].highlight {
-      background-color: #f0f0f0;
-    }
-
-    div[data-start].playing {
-      background-color: #ffdab9;
-      /* light orange */
-    }
-
-    .zoomed {
-      position: fixed;
-      z-index: 10;
-      display: none;
-      /* Hidden by default */
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background-color: #fff;
-      /* Or any background color you prefer */
-      padding: 10px;
-      border-radius: 5px;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-    }
-
-    .zoomed img {
-      max-width: 100%;
-      /* Adjust as necessary */
-      height: auto;
-    }
-
-    .legend {
-      text-align: center;
-      margin-top: 10px;
-      font-size: 16px;
-      color: #333;
-      /* Text color */
-    }
-  </style>
+  <!-- Style definitions have been moved to Tailwind CSS classes within the HTML elements -->
 
   <title>[[title]] Transcript Summary</title>
   <script>
@@ -423,18 +289,18 @@
   </script>
 </head>
 
-<body>
-  <div class="header">
-    <h1>[[title]]</h1>
+<body class="m-0 font-sans">
+  <div class="text-center h-20">
+    <h1 class="text-center w-full px-10">[[title]]</h1>
   </div>
 
-  <div class="main-container">
-    <div class="container chapters-container">
+  <div class="flex h-screen">
+    <div class="flex-1 overflow-y-auto p-5">
       <div class="container">[[description]]</div>
     </div>
   </div>
 
-  <div class="audio-container">
+  <div class="flex justify-between items-center h-25">
     <audio id="audioPlayer" controls>
       <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
       Your browser does not support the audio element.
