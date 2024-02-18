@@ -23,6 +23,6 @@ Lorem ipsum dolor sit amet,
 consectetur adipiscing elit,
 """
     with patch("builtins.open", mock_open(read_data=mock_vtt_content)):
-        with patch("os.path.join", return_value="transcript.vtt"):
+        with patch("os.path.join", return_value="transcript.json"):
             start_times = extract_transcript_start_times(".")
             assert start_times == ["00:00:00", "00:00:05"]

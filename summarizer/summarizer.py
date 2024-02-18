@@ -52,7 +52,7 @@ async def create_index(dir: str, output_path: str, title: str):
     with open(os.path.join(dir, "title.json"), "r") as file:
         title_data = json.loads(file.read())
 
-    with open(os.path.join(dir, "transcript.vtt"), "r") as file:
+    with open(os.path.join(dir, "transcript.json"), "r") as file:
         transcript = file.read()
 
     snapshots = ""
@@ -123,21 +123,16 @@ async def update_index(
     has_video: bool,
     quiet:bool,
 ):
-    # TODO
-    # - run a command to find transitions in the transcript. These are the chapters.
-    # - include in this command all the snapshots we kept, and their timestamps.
-    # - make sure that the snapshots use the same timestamps as the chapters.
-    # - ideally, also describe the snapshots, and capture that context. Capture a title for each snapshot.
     print("Creating transcript...") if not quiet else None
     if transcript:
         logger.info(f"Using supplied transcript: {transcript}")
         os.makedirs(dirname, exist_ok=True)
-        if transcript != f"{dirname}/transcript.vtt":
-            shutil.copy(transcript, f"{dirname}/transcript.vtt")
-    elif not os.path.exists(f"{dir}/transcript.vtt"):
+        if transcript != f"{dirname}/transcript.json":
+            shutil.copy(transcript, f"{dirname}/transcript.json")
+    elif not os.path.exists(f"{dir}/transcript.json"):
         print("Generating transcript...") if not quiet else None
         await create_transcript(f"{dirname}/audio.mp3", dirname)
-    transcript_path = os.path.join(dirname, "transcript.vtt")
+    transcript_path = os.path.join(dirname, "transcript.json")
 
     if has_video:
         print("Generating snapshots...") if not quiet else None
@@ -211,8 +206,8 @@ async def update_index_cli(summary_path, snapshot_min_secs, summary_min_mins, qu
     await update_index(
         None,
         summary_path,
-        summary_path + "/transcript.vtt"
-        if os.path.exists(summary_path + "/transcript.vtt")
+        summary_path + "/transcript.json"
+        if os.path.exists(summary_path + "/transcript.json")
         else None,
         title,
         summary_min_mins,
