@@ -82,6 +82,7 @@ tldl update-index /path/to/summary-directory
 - Extract metadata from snapshots, so that its searchable.
 - Improve the image snapshots - currently..._way_ too limited.
 - TODO use non-openai or at least make it configurable.
+- support markdown and katex: https://www.npmjs.com/package/marked-katex-extension
 
 # Limitations
 

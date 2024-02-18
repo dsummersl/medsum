@@ -138,6 +138,7 @@
       /* Text color */
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
     const CHAPTERS = [[chapters]];
     const SNAPSHOTS = [[snapshots]];
@@ -292,38 +293,26 @@
         const start = entry.start;
         const end = entry.end;
         const text = entry.text;
-        const chapterElement = findChapterForTime(start);
-
-        if (chapterElement) {
-          const summaryElement = findSummaryForTime(chapterElement, start);
-          if (summaryElement) {
-            const transcriptDiv = document.createElement('div');
-            transcriptDiv.textContent = text;
-            transcriptDiv.setAttribute('data-start', start);
-            transcriptDiv.setAttribute('data-end', end);
-            summaryElement.querySelector('.transcripts').appendChild(transcriptDiv);
-          }
+        const summaryElement = findSummaryForTime(start);
+        if (summaryElement) {
+          const transcriptDiv = document.createElement('div');
+          transcriptDiv.textContent = text;
+          transcriptDiv.setAttribute('data-start', start);
+          transcriptDiv.setAttribute('data-end', end);
+          summaryElement.querySelector('.transcripts').appendChild(transcriptDiv);
         }
       });
     }
 
-    function findChapterForTime(time) {
-      const chapters = document.querySelectorAll('.chapters-container > div');
-      for (let i = chapters.length - 1; i >= 0; i--) {
-        const chapterStart = chapters[i].getAttribute('data-chapter-start');
-        if (timeStringToSeconds(time) >= timeStringToSeconds(chapterStart)) {
-          return chapters[i];
-        }
-      }
-      return null;
-    }
-
-    function findSummaryForTime(chapterElement, time) {
-      const summaries = chapterElement.querySelectorAll('.summary-container');
-      for (let i = summaries.length - 1; i >= 0; i--) {
-        const summaryStart = summaries[i].getAttribute('data-start');
+    function findSummaryForTime(time) {
+      const summaries = document.querySelectorAll('.summary-container');
+      const summariesSortedByStartTime = Array.from(summaries).sort((a, b) => {
+        return timeStringToSeconds(a.getAttribute('data-start')) - timeStringToSeconds(b.getAttribute('data-start'));
+      });
+      for (let i = summariesSortedByStartTime.length - 1; i >= 0; i--) {
+        const summaryStart = summariesSortedByStartTime[i].getAttribute('data-start');
         if (timeStringToSeconds(time) >= timeStringToSeconds(summaryStart)) {
-          return summaries[i];
+          return summariesSortedByStartTime[i];
         }
       }
       return null;
@@ -354,8 +343,8 @@
         let chapterDiv = document.createElement("div");
         chapterDiv.setAttribute("data-chapter-start", start);
         chapterDiv.innerHTML = `
-          <h2>${title}</h2>
-          <p>${description}</p>
+          <h2>${marked.parse(title)}</h2>
+          <p>${marked.parse(description)}</p>
         `;
         chaptersContainer.appendChild(chapterDiv);
 
@@ -369,7 +358,7 @@
           summaryDiv.setAttribute("class", "summary-container");
           summaryDiv.innerHTML = `
             <p>
-              <b>${start}</b> : ${description}
+              <b>${start}</b> : ${marked.parse(description)}
             </p>
             <div class="transcripts"></div>
           `;
