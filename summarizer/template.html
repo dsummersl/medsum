@@ -287,18 +287,18 @@
   </script>
 </head>
 
-<body class="m-0 font-sans">
-  <div class="text-center h-20 bg-gray-100">
+<body class="m-0 font-sans flex flex-col">
+  <div class="text-center h-20 bg-gray-100 fixed top-0 left-0 right-0 z-10">
     <h1 class="text-center w-full px-10">[[title]]</h1>
   </div>
 
-  <div class="flex h-screen bg-white">
-    <div class="chapters-container flex-1 overflow-y-auto p-5 bg-gray-50">
+  <div class="flex-1 overflow-auto bg-white">
+    <div class="chapters-container w-full p-5 bg-gray-50">
       <div class="container">[[description]]</div>
     </div>
   </div>
 
-  <div class="flex justify-between items-center h-25 bg-gray-200">
+  <div class="flex justify-between items-center h-25 bg-gray-200 fixed bottom-0 left-0 right-0 z-10">
     <audio id="audioPlayer" controls>
       <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
       Your browser does not support the audio element.
