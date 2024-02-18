@@ -295,33 +295,26 @@
 
       centerOnPlayingElement();
 
-      let playingSummary = document.querySelector(
-        ".chapters-container .playing",
-      );
-      if (playingSummary) {
-        let images = playingSummary.querySelectorAll(".img-content img");
+      displayClosestImage(currentTime);
+    }
 
-        activeElement = false;
-        Array.from(images).forEach(function (image) {
-          let imageStartTime = timeStringToSeconds(
-            image.getAttribute("data-start"),
-          );
+    function displayClosestImage(currentTime) {
+      let snapshots = document.querySelectorAll(".snapshots-container img");
+      let closestSnapshot = null;
+      let closestTimeDiff = Number.MAX_VALUE;
 
-          if (imageStartTime >= currentTime && !activeElement) {
-            image.classList.add("active");
-            activeElement = true;
-          } else {
-            image.classList.remove("active");
-          }
-        });
-
-        let activeImages = playingSummary.querySelectorAll(
-          ".img-content img.active",
-        );
-        if (activeImages.length === 0 && images.length > 0) {
-          // No active images, so make the first one active
-          images[0].classList.add("active");
+      snapshots.forEach((snapshot) => {
+        let snapshotTime = timeStringToSeconds(snapshot.getAttribute("data-start"));
+        let timeDiff = Math.abs(currentTime - snapshotTime);
+        if (timeDiff < closestTimeDiff) {
+          closestTimeDiff = timeDiff;
+          closestSnapshot = snapshot;
         }
+      });
+
+      if (closestSnapshot) {
+        snapshots.forEach((snapshot) => snapshot.style.display = 'none');
+        closestSnapshot.style.display = 'block';
       }
     }
 
