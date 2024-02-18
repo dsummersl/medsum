@@ -83,13 +83,13 @@ class SnapshotDict(TypedDict):
     source: str
 
 def create_snapshots_file(dir: str) -> List[SnapshotDict]:
+    os.makedirs(os.path.join(dir, "snapshots"), exist_ok=True)
     snapshots_file = os.path.join(dir, "snapshots", "snapshots.json")
     snapshot_files = [f for f in os.listdir(os.path.join(dir, "snapshots")) if f.endswith(".jpg")]
 
     # Generate HTML for each snapshot
     snapshots_json = [SnapshotDict(start=os.path.splitext(s)[0].replace("_", ":"), source=f"snapshots/{s}") for s in snapshot_files]
     logger.info("Saving snapshots to file...")
-    os.makedirs(os.path.join(dir, "snapshots"), exist_ok=True)
     with open(snapshots_file, "w") as file:
         file.write(json.dumps(snapshots_json, indent=2))
 
