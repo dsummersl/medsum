@@ -7,8 +7,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-  <!-- Style definitions have been moved to Tailwind CSS classes within the HTML elements -->
-
   <title>[[title]] Transcript Summary</title>
   <script>
     const CHAPTERS = [[chapters]];
@@ -295,7 +293,7 @@
   </div>
 
   <div class="flex h-screen bg-white">
-    <div class="flex-1 overflow-y-auto p-5 bg-gray-50">
+    <div class="chapters-container flex-1 overflow-y-auto p-5 bg-gray-50">
       <div class="container">[[description]]</div>
     </div>
   </div>
@@ -305,7 +303,7 @@
       <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
       Your browser does not support the audio element.
     </audio>
-    <div class="flex-1 h-full flex items-center justify-end overflow-hidden mr-4"></div>
+    <div class="snapshots-container flex-1 h-full flex items-center justify-end overflow-hidden mr-4"></div>
   </div>
 
   <div class="zoomed fixed z-10 hidden top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-md shadow-lg">
