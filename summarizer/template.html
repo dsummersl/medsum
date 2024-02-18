@@ -19,22 +19,6 @@
       height: 80px;
     }
 
-    .icon-container {
-      cursor: pointer;
-      padding: 5px;
-      margin-left: 5px;
-      margin-right: 20px;
-      user-select: none;
-      position: absolute;
-      top: 10px;
-      right: 20px;
-    }
-
-    .icon {
-      user-select: none;
-      cursor: pointer;
-    }
-
     .container {
       flex: 1;
       overflow-y: auto;
@@ -174,6 +158,7 @@
   <script>
     const CHAPTERS = [[chapters]];
     const SNAPSHOTS = [[snapshots]];
+    const TRANSCRIPT = [[transcript]];
 
     function insertImages() {
       var summaries = document.querySelectorAll(
@@ -319,21 +304,21 @@
     }
 
     function preprocessVTTContent() {
-      let vttContainer = document.querySelector(".vtt-container");
-      let lines = vttContainer.textContent.split("\n");
-      let processedHTML = "";
+      //let vttContainer = document.querySelector(".vtt-container");
+      //let lines = vttContainer.textContent.split("\n");
+      //let processedHTML = "";
 
-      lines.forEach(function (line) {
-        let matches = line.match(/^\s*(\d\d:\d\d:\d\d)/);
-        if (matches) {
-          let start = matches[1];
-          processedHTML += `<div data-start="${start}">${line.trim()}</div>`;
-        } else {
-          processedHTML += `<div>${line.trim()}</div>`;
-        }
-      });
+      //lines.forEach(function (line) {
+      //  let matches = line.match(/^\s*(\d\d:\d\d:\d\d)/);
+      //  if (matches) {
+      //    let start = matches[1];
+      //    processedHTML += `<div data-start="${start}">${line.trim()}</div>`;
+      //  } else {
+      //    processedHTML += `<div>${line.trim()}</div>`;
+      //  }
+      //});
 
-      vttContainer.innerHTML = processedHTML;
+      //vttContainer.innerHTML = processedHTML;
     }
 
     function preprocessSnapshots() {
@@ -443,19 +428,12 @@
 <body>
   <div class="header">
     <h1>[[title]]</h1>
-    <div class="icon-container">
-      <div class="icon" alt="Show transcript" id="toggleTranscript">📄</div>
-    </div>
   </div>
 
   <div class="main-container">
     <div class="container chapters-container">
       <div class="container summary-container">[[description]]</div>
     </div>
-
-    <pre class="container vtt-container">
-      [[transcript]]
-    </pre>
   </div>
 
   <div class="audio-container">
