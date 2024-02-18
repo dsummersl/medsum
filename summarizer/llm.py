@@ -98,23 +98,33 @@ async def generate_summary(
 
     logger.info("Generating summary...")
 
-    # Split the transcript text into lines
-    lines = source_text.split('\n')
+    if len(source_in_all_prompts_text) > CHUNK_SIZE:
+        logger.warning(
+            f"source_in_all_prompts_text is too long (not using): {len(source_in_all_prompts_text)}"
+        )
+        source_in_all_prompts_text = ""
+
+    # Split the transcript text into chunks
+    chunks = [
+        source_in_all_prompts_text + source_text[i : i + CHUNK_SIZE]
+        for i in range(
+            0, len(source_text), CHUNK_SIZE - len(source_in_all_prompts_text)
+        )
+    ]
 
     # List to hold summaries of each chunk
     summaries = []
 
     # TODO maybe replace all this with ReduceDocumentsChain?
     count = 1
-    for line in lines:
+    for chunk in chunks:
         (
             print(f"Generating summary for chunk {count} of {len(chunks)}...")
-            print(f"Generating summary for chunk {count} of {len(lines)}...")
             if not quiet
             else None
         )
         parameters = {
-            "source_text": line,
+            "source_text": chunk,
         }
         if minimum_summary_minutes is not None:
             parameters["minimum_summary_minutes"] = str(minimum_summary_minutes)
