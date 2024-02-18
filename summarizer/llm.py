@@ -1,6 +1,7 @@
 import logging
 import time
 import os
+from typing import Dict, List
 import yaml
 import json
 from webvtt import WebVTT
@@ -25,10 +26,10 @@ openai_client = AsyncOpenAI()
 
 
 def seconds_to_hms(seconds: float) -> str:
-  return time.strftime('%H:%M:%S', time.gmtime(seconds))
+    return time.strftime("%H:%M:%S", time.gmtime(seconds))
 
 
-def convert_transcript_to_json(transcript_path: str) -> dict:
+def convert_transcript_to_json(transcript_path: str) -> List[Dict]:
     """
     Convert VTT transcript text to JSON format.
     """
@@ -44,7 +45,7 @@ def convert_transcript_to_json(transcript_path: str) -> dict:
     return entries
 
 
-async def create_transcript(media_path: str, dir: str):
+async def create_transcript(media_path: str, dir: str) -> List[Dict]:
     """Use openai speech-to-text to extract audio, and save it to 'dir/transcript.json'"""
     if not os.path.exists(f"{dir}/transcript.json"):
         with open(media_path, "rb") as f:
@@ -63,11 +64,13 @@ async def create_transcript(media_path: str, dir: str):
             logger.info("Transcript saved!")
     else:
         logger.info("Transcript already exists, skipping...")
-        return
+        return json.loads(open(f"{dir}/transcript.json").read())
 
     transcript_json = convert_transcript_to_json(f"{dir}/transcript.vtt")
     with open(f"{dir}/transcript.json", "w") as f:
         f.write(json.dumps(transcript_json, indent=2))
+
+    return transcript_json
 
 
 async def chat(prompt: str) -> str:
@@ -80,19 +83,19 @@ async def chat(prompt: str) -> str:
 
 
 async def generate_summary(
-    source: str, dest: str, template: str, quiet: bool, minimum_summary_minutes: int | None = None, source_in_all_prompts: str | None = None
-):
+    source_text: str,
+    dest: str,
+    template: str,
+    quiet: bool,
+    minimum_summary_minutes: int | None = None,
+    source_in_all_prompts_text: str | None = None,
+) -> List[Dict]:
     """Summarize a text file, and save it to a destination"""
     if os.path.exists(dest):
         logger.info("Summary already exists, skipping...")
-        return
+        return json.loads(open(dest).read())
 
-    with open(source, "r") as file:
-        source_text = file.read()
-
-    source_in_all_prompts_text = ""
-    if source_in_all_prompts and os.path.exists(source_in_all_prompts):
-        source_in_all_prompts_text = open(source_in_all_prompts, "r").read()
+    source_in_all_prompts_text = source_in_all_prompts_text or ""
 
     logger.info("Generating summary...")
 
@@ -105,7 +108,9 @@ async def generate_summary(
     # Split the transcript text into chunks
     chunks = [
         source_in_all_prompts_text + source_text[i : i + CHUNK_SIZE]
-        for i in range(0, len(source_text), CHUNK_SIZE - len(source_in_all_prompts_text))
+        for i in range(
+            0, len(source_text), CHUNK_SIZE - len(source_in_all_prompts_text)
+        )
     ]
 
     # List to hold summaries of each chunk
@@ -114,9 +119,11 @@ async def generate_summary(
     # TODO maybe replace all this with ReduceDocumentsChain?
     count = 1
     for chunk in chunks:
-        print(
-            f"Generating summary for chunk {count} of {len(chunks)}..."
-        ) if not quiet else None
+        (
+            print(f"Generating summary for chunk {count} of {len(chunks)}...")
+            if not quiet
+            else None
+        )
         parameters = {
             "source_text": chunk,
         }
@@ -135,3 +142,5 @@ async def generate_summary(
 
     with open(dest, "w") as file:
         file.write(json.dumps(combined_summary, indent=2))
+
+    return combined_summary

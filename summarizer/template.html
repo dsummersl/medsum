@@ -172,7 +172,6 @@
     }
   </style>
   <script>
-    const SUMMARIES = [[summary]];
     const CHAPTERS = [[chapters]];
 
     function insertImages() {
@@ -361,36 +360,21 @@
           <h2>${title}</h2>
         `;
         chaptersContainer.appendChild(chapterDiv);
-      });
-      const findChapterEl = (time) => {
-        let chapters = document.querySelectorAll(
-          ".chapters-container > div[data-chapter-start]",
-        );
-        let foundChapter = false;
-        Array.from(chapters).forEach(function (chapter) {
-          let startTime = timeStringToSeconds(
-            chapter.getAttribute("data-chapter-start"),
-          );
-          if (time >= startTime) {
-            foundChapter = chapter;
-          }
+
+        chapter.summaries.forEach((summary) => {
+          let start = summary.start;
+          let title = summary.title;
+          let summaryStartTime = timeStringToSeconds(start);
+          let description = summary.description;
+          let summaryDiv = document.createElement("div");
+          summaryDiv.setAttribute("data-start", start);
+          summaryDiv.innerHTML = `
+            <p>
+              <b>${start}</b> : ${description}
+            </p>
+          `;
+          chapterDiv.appendChild(summaryDiv);
         });
-        return foundChapter;
-      };
-      SUMMARIES.forEach((summary) => {
-        let start = summary.start;
-        let title = summary.title;
-        let summaryStartTime = timeStringToSeconds(start);
-        let description = summary.description;
-        let summaryDiv = document.createElement("div");
-        const summaryContainer = findChapterEl(summaryStartTime);
-        summaryDiv.setAttribute("data-start", start);
-        summaryDiv.innerHTML = `
-          <p>
-            <b>${start}</b> : ${description}
-          </p>
-        `;
-        summaryContainer.appendChild(summaryDiv);
       });
     }
 

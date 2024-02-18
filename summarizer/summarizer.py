@@ -12,9 +12,14 @@ import click
 
 from .ffmpeg import create_lower_quality_mp3, file_contains_video_or_audio
 from .ffmpeg import logger as ffmpeg_logger
-from .templates import SUMMARY_TEMPLATE, CHAPTERS_TEMPLATE, TITLE_TEMPLATE
-from .snapshots import create_snapshots_at_time_increments, create_snapshots_file, logger as snapshots_logger
+from .templates import SUMMARY_TEMPLATE, TITLE_TEMPLATE
+from .snapshots import (
+    create_snapshots_at_time_increments,
+    create_snapshots_file,
+    logger as snapshots_logger,
+)
 from .llm import create_transcript, generate_summary
+
 
 logger = logging.getLogger(__name__)
 
@@ -43,16 +48,13 @@ async def create_index(dir: str, output_path: str, title: str):
     index_path = os.path.join(dir, "index.html")
     dir_path = os.path.join(dir, f"{output_path}.html")
 
-    with open(os.path.join(dir, "summary.json"), "r") as file:
-        summary = file.read()
-
     with open(os.path.join(dir, "chapters.json"), "r") as file:
         chapters = file.read()
 
     with open(os.path.join(dir, "title.json"), "r") as file:
         title_data = json.loads(file.read())
 
-    with open(os.path.join(dir, "transcript.json"), "r") as file:
+    with open(os.path.join(dir, "transcript.vtt"), "r") as file:
         transcript = file.read()
 
     snapshots = ""
@@ -66,9 +68,8 @@ async def create_index(dir: str, output_path: str, title: str):
     with open(index_path, "w") as file:
         file.write(
             HTML_TEMPLATE.format(
-                title=title or title_data['title'],
-                description=title_data['description'],
-                summary=summary,
+                title=title or title_data["title"],
+                description=title_data["description"],
                 chapters=chapters,
                 transcript=transcript,
                 snapshots=snapshots,
@@ -80,16 +81,12 @@ async def create_index(dir: str, output_path: str, title: str):
         file.write(
             HTML_TEMPLATE.format(
                 title=output_path,
-                description=title_data['description'],
-                summary=summary,
+                description=title_data["description"],
                 chapters=chapters,
                 transcript=transcript,
                 snapshots=snapshots,
             )
         )
-
-
-
 
 
 class SummaryHTMLParser(HTMLParser):
@@ -117,52 +114,55 @@ async def update_index(
     file_path: str,
     dirname: str,
     title: str,
-    transcript:str,
+    transcript: str,
     summary_min_mins: int,
-    snapshot_min_secs:int,
+    snapshot_min_secs: int,
     has_video: bool,
-    quiet:bool,
+    quiet: bool,
 ):
     print("Creating transcript...") if not quiet else None
+    transcript_json = []
     if transcript:
         logger.info(f"Using supplied transcript: {transcript}")
         os.makedirs(dirname, exist_ok=True)
         if transcript != f"{dirname}/transcript.json":
             shutil.copy(transcript, f"{dirname}/transcript.json")
+        transcript_json = json.loads(open(transcript).read())
     elif not os.path.exists(f"{dir}/transcript.json"):
         print("Generating transcript...") if not quiet else None
-        await create_transcript(f"{dirname}/audio.mp3", dirname)
-    transcript_path = os.path.join(dirname, "transcript.json")
+        transcript_json = await create_transcript(f"{dirname}/audio.mp3", dirname)
 
     if has_video:
         print("Generating snapshots...") if not quiet else None
-        await create_snapshots_at_time_increments(
-            file_path, dirname, snapshot_min_secs
-        )
+        await create_snapshots_at_time_increments(file_path, dirname, snapshot_min_secs)
     snapshots = create_snapshots_file(dirname)
 
     print("Generating chapters...") if not quiet else None
-    summary_to_chapters_path = os.path.join(dirname, "chapters.txt")
-    snapshot_text_path = os.path.join(dirname, "snapshots", "snapshot_text.json")
-    snapshot_text = "Snapshots:\n"+ "\n".join([f"{s['start']} : {s['source']}" for s in snapshots]) + "\n\nTranscript:\n"
-    with open(snapshot_text_path, "w") as f:
-        f.write(snapshot_text)
+    snapshot_text = (
+        "Snapshots:\n"
+        + "\n".join([f"{s['start']} : {s['source']}" for s in snapshots])
+        + "\n\nTranscript:\n"
+    )
+    transcript_text = "\n".join(
+        [f"{s['start']} : {s['text']}" for s in transcript_json]
+    )
 
-    chapters_path = os.path.join(dirname, "chapters.json")
-    await generate_summary(transcript_path, chapters_path, CHAPTERS_TEMPLATE, quiet, None, snapshot_text_path)
-
-    print("Generating summary...") if not quiet else None
-    summary_path = os.path.join(dirname, "summary.json")
-    await generate_summary(transcript_path, summary_path, SUMMARY_TEMPLATE, quiet, summary_min_mins)
+    chapters_json = await generate_summary(
+        transcript_text,
+        os.path.join(dirname, "chapters.json"),
+        SUMMARY_TEMPLATE,
+        quiet,
+        None,
+        snapshot_text,
+    )
 
     print("Generating title...") if not quiet else None
-    summary_to_chapters_path = os.path.join(dirname, "titles.txt")
-    chapter_parts = json.loads(open(chapters_path).read())
-    chapters = "Chapters:\n"+ "\n".join([f"{s['start']} {s['title']} : {s['description']}" for s in chapter_parts])
-    with open(summary_to_chapters_path, "w") as f:
-        f.write(chapters)
-    title_path = os.path.join(dirname, "title.json")
-    await generate_summary(summary_to_chapters_path, title_path, TITLE_TEMPLATE, quiet, None)
+    chapters = "Sections:\n" + "\n".join(
+        [f"{s['title']} : {s['description']}" for s in chapters_json]
+    )
+    await generate_summary(
+        chapters, os.path.join(dirname, "title.json"), TITLE_TEMPLATE, quiet
+    )
 
     last_dir = os.path.basename(os.path.dirname(dirname + "/fake.txt"))
     await create_index(dirname, last_dir, title)
@@ -190,7 +190,9 @@ def cli():
     "--title", help="Specify a title for the summary (default: auto-generated)"
 )
 @coro
-async def update_index_cli(summary_path, snapshot_min_secs, summary_min_mins, quiet, title):
+async def update_index_cli(
+    summary_path, snapshot_min_secs, summary_min_mins, quiet, title
+):
     """Regenerate the transcript, summary, and index of a previously summarized directory.
 
     This command is useful if you want to refresh/update an existing summary:
@@ -206,14 +208,16 @@ async def update_index_cli(summary_path, snapshot_min_secs, summary_min_mins, qu
     await update_index(
         None,
         summary_path,
-        summary_path + "/transcript.json"
-        if os.path.exists(summary_path + "/transcript.json")
-        else None,
+        (
+            summary_path + "/transcript.json"
+            if os.path.exists(summary_path + "/transcript.json")
+            else None
+        ),
         title,
         summary_min_mins,
         snapshot_min_secs,
         False,
-        quiet
+        quiet,
     )
 
 
@@ -226,7 +230,12 @@ async def update_index_cli(summary_path, snapshot_min_secs, summary_min_mins, qu
     help="Path to supplied transcript (if supplied, medsum won't generate one)",
 )
 @click.option("--output", "-o", default=None, help="Where to drop the output files")
-@click.option("--open/--no-open", "-p", default=False, help="Open the index.html file in a browser")
+@click.option(
+    "--open/--no-open",
+    "-p",
+    default=False,
+    help="Open the index.html file in a browser",
+)
 @click.option(
     "--snapshots/--no-snapshots", default=True, help="Create snapshots if possible"
 )
