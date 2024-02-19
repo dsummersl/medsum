@@ -154,7 +154,7 @@
             summaryDiv.setAttribute("data-start", start);
             summaryDiv.setAttribute("class", "summary-container");
             summaryDiv.innerHTML = `
-            <div class="cursor-pointer hover:bg-slate-50">${marked.parse(summary.markdown)}</div>
+            <div>${marked.parse(summary.markdown)} <i>${summary.sourceIds.map(id => `<a href="#" onclick="setAudioPlayerOffset('${TRANSCRIPT[id].start}')" class="timestamp-link">${TRANSCRIPT[id].start}</a>`).join(', ')}</i></div>
             <div class="transcripts"></div>
           `;
             chapterDiv.appendChild(summaryDiv);
