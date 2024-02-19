@@ -31,7 +31,7 @@ def similar_snapshots(snapshot1_path: str, snapshot2_path: str, percent: int):
 
 
 async def create_snapshots_at_time_increments(
-    source_file: str, dir: str, min_interval: float
+    source_file: str, dir: str, min_interval: float, transcript: List[Dict[str, str]]
 ):
     """
     If the file is a video, create snapshots at the start time of each summary,
@@ -41,11 +41,11 @@ async def create_snapshots_at_time_increments(
     :param dir: Directory to save snapshots.
     :param min_interval: Minimum interval between snapshots in seconds.
     """
-    if os.path.exists(f"{dir}/snapshots/index.html"):
+    if os.path.exists(f"{dir}/snapshots/snapshots.json"):
         logger.info("Snapshots already exists, skipping...")
         return
 
-    start_times = extract_transcript_start_times(dir)
+    start_times = [t["start"] for t in transcript]
     logger.debug("Start times: %s", start_times)
 
     previous_snapshot_time = 0
@@ -54,6 +54,7 @@ async def create_snapshots_at_time_increments(
     for start_time in start_times:
         current_time = time_string_to_seconds(start_time)
         if (current_time - previous_snapshot_time) < min_interval:
+            logger.debug(f"Skipping snapshot for {current_time}, {min_interval} min_interval not triggered...")
             continue  # Skip if the interval is less than the minimum
 
         snapshot_filename = start_time.replace(":", "_") + ".jpg"

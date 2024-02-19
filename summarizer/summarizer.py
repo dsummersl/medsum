@@ -134,7 +134,7 @@ async def update_index(
 
     if has_video:
         print("Generating snapshots...") if not quiet else None
-        await create_snapshots_at_time_increments(file_path, dirname, snapshot_min_secs)
+        await create_snapshots_at_time_increments(file_path, dirname, snapshot_min_secs, transcript_json)
     create_snapshots_file(dirname)
 
     print("Generating chapters...") if not quiet else None

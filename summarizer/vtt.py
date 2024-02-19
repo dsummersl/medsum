@@ -12,6 +12,7 @@ def time_string_to_seconds(time_string):
     """
     patterns = [
         re.compile(r"^(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2}).(?P<ms>\d{3})$"),
+        re.compile(r"^(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})"),
         re.compile(r"^(?P<minute>\d{2}):(?P<second>\d{2}).(?P<ms>\d{3})$"),
         re.compile(r"^(?P<hour>\d{2}):(?P<minute>\d{2})$"),
     ]
