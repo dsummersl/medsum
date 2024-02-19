@@ -1,267 +1,298 @@
 <!doctype html>
 <html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <title>[[title]] Transcript Summary</title>
+    <script>
+      const CHAPTERS = [[chapters]];
+      const SNAPSHOTS = [[snapshots]];
+      const TRANSCRIPT = [[transcript]];
 
-  <title>[[title]] Transcript Summary</title>
-  <script>
-    const CHAPTERS = [[chapters]];
-    const SNAPSHOTS = [[snapshots]];
-    const TRANSCRIPT = [[transcript]];
+      function setAudioPlayerOffset(start) {
+        var audioPlayer = document.getElementById("audioPlayer");
+        var source = document.getElementById("audioSource");
 
-    function setAudioPlayerOffset(start) {
-      var audioPlayer = document.getElementById("audioPlayer");
-      var source = document.getElementById("audioSource");
-
-      var isPlaying = !audioPlayer.paused;
-      source.src = "./audio.mp3#t=" + start;
-      audioPlayer.load();
-      if (isPlaying) {
-        audioPlayer.play();
+        var isPlaying = !audioPlayer.paused;
+        source.src = "./audio.mp3#t=" + start;
+        audioPlayer.load();
+        if (isPlaying) {
+          audioPlayer.play();
+        }
       }
-    }
 
-    function updateHighlightBasedOnTime() {
-      let audioPlayer = document.getElementById("audioPlayer");
-      let currentTime = audioPlayer.currentTime;
+      function updateHighlightBasedOnTime() {
+        let audioPlayer = document.getElementById("audioPlayer");
+        let currentTime = audioPlayer.currentTime;
 
-      const markPlayingElement = (summaries) => {
-        let activeElement = false;
-        Array.from(summaries)
-          .reverse()
-          .forEach(function (summary) {
-            let startTime = timeStringToSeconds(
-              summary.getAttribute("data-start"),
+        const markPlayingElement = (summaries) => {
+          let activeElement = false;
+          Array.from(summaries)
+            .reverse()
+            .forEach(function (summary) {
+              let startTime = timeStringToSeconds(
+                summary.getAttribute("data-start"),
+              );
+
+              if (currentTime >= startTime && !activeElement) {
+                summary.classList.add("playing");
+                activeElement = true;
+              } else {
+                summary.classList.remove("playing");
+              }
+            });
+        };
+        markPlayingElement(
+          document.querySelectorAll(".chapters-container div[data-start]"),
+        );
+        markPlayingElement(
+          document.querySelectorAll(".vtt-container div[data-start]"),
+        );
+
+        displayClosestImage(currentTime);
+      }
+
+      function displayClosestImage(currentTime) {
+        let snapshots = document.querySelectorAll(".snapshots-container img");
+        let closestSnapshot = null;
+        let closestTimeDiff = Number.MAX_VALUE;
+
+        snapshots.forEach((snapshot) => {
+          let snapshotTime = timeStringToSeconds(
+            snapshot.getAttribute("data-start"),
+          );
+          let timeDiff = Math.abs(currentTime - snapshotTime);
+          if (timeDiff < closestTimeDiff) {
+            closestTimeDiff = timeDiff;
+            closestSnapshot = snapshot;
+          }
+        });
+
+        if (closestSnapshot) {
+          snapshots.forEach((snapshot) => (snapshot.style.display = "none"));
+          closestSnapshot.style.display = "block";
+        }
+      }
+
+      function preprocessVTTContent() {
+        TRANSCRIPT.forEach(function (entry) {
+          const start = entry.start;
+          const end = entry.end;
+          const text = entry.text;
+          const summaryElement = findSummaryForTime(start);
+          if (summaryElement) {
+            const transcriptDiv = document.createElement("blockquote");
+            transcriptDiv.textContent = text;
+            transcriptDiv.setAttribute("data-start", start);
+            transcriptDiv.setAttribute("data-end", end);
+            transcriptDiv.setAttribute("class", "hidden");
+            summaryElement
+              .querySelector(".transcripts")
+              .appendChild(transcriptDiv);
+          }
+        });
+      }
+
+      function findSummaryForTime(time) {
+        const summaries = document.querySelectorAll(".summary-container");
+        const summariesSortedByStartTime = Array.from(summaries).sort(
+          (a, b) => {
+            return (
+              timeStringToSeconds(a.getAttribute("data-start")) -
+              timeStringToSeconds(b.getAttribute("data-start"))
             );
-
-            if (currentTime >= startTime && !activeElement) {
-              summary.classList.add("playing");
-              activeElement = true;
-            } else {
-              summary.classList.remove("playing");
-            }
-          });
-      };
-      markPlayingElement(
-        document.querySelectorAll(".chapters-container div[data-start]"),
-      );
-      markPlayingElement(
-        document.querySelectorAll(".vtt-container div[data-start]"),
-      );
-
-      displayClosestImage(currentTime);
-    }
-
-    function displayClosestImage(currentTime) {
-      let snapshots = document.querySelectorAll(".snapshots-container img");
-      let closestSnapshot = null;
-      let closestTimeDiff = Number.MAX_VALUE;
-
-      snapshots.forEach((snapshot) => {
-        let snapshotTime = timeStringToSeconds(snapshot.getAttribute("data-start"));
-        let timeDiff = Math.abs(currentTime - snapshotTime);
-        if (timeDiff < closestTimeDiff) {
-          closestTimeDiff = timeDiff;
-          closestSnapshot = snapshot;
+          },
+        );
+        for (let i = summariesSortedByStartTime.length - 1; i >= 0; i--) {
+          const summaryStart =
+            summariesSortedByStartTime[i].getAttribute("data-start");
+          if (timeStringToSeconds(time) >= timeStringToSeconds(summaryStart)) {
+            return summariesSortedByStartTime[i];
+          }
         }
-      });
-
-      if (closestSnapshot) {
-        snapshots.forEach((snapshot) => snapshot.style.display = 'none');
-        closestSnapshot.style.display = 'block';
+        return null;
       }
-    }
 
-    function preprocessVTTContent() {
-      TRANSCRIPT.forEach(function (entry) {
-        const start = entry.start;
-        const end = entry.end;
-        const text = entry.text;
-        const summaryElement = findSummaryForTime(start);
-        if (summaryElement) {
-          const transcriptDiv = document.createElement('blockquote');
-          transcriptDiv.textContent = text;
-          transcriptDiv.setAttribute('data-start', start);
-          transcriptDiv.setAttribute('data-end', end);
-          transcriptDiv.setAttribute('class', 'hidden');
-          summaryElement.querySelector('.transcripts').appendChild(transcriptDiv);
-        }
-      });
-    }
-
-    function findSummaryForTime(time) {
-      const summaries = document.querySelectorAll('.summary-container');
-      const summariesSortedByStartTime = Array.from(summaries).sort((a, b) => {
-        return timeStringToSeconds(a.getAttribute('data-start')) - timeStringToSeconds(b.getAttribute('data-start'));
-      });
-      for (let i = summariesSortedByStartTime.length - 1; i >= 0; i--) {
-        const summaryStart = summariesSortedByStartTime[i].getAttribute('data-start');
-        if (timeStringToSeconds(time) >= timeStringToSeconds(summaryStart)) {
-          return summariesSortedByStartTime[i];
-        }
+      function preprocessSnapshots() {
+        const snapshotsContainer = document.querySelector(
+          ".snapshots-container",
+        );
+        let firstImage = true;
+        SNAPSHOTS.forEach((snapshot) => {
+          let start = snapshot.start;
+          let source = snapshot.source;
+          let snapshotImage = document.createElement("img");
+          snapshotImage.setAttribute("data-start", start);
+          snapshotImage.setAttribute("src", source);
+          let classes =
+            "object-scale-down h-full " + (firstImage ? "" : "hidden");
+          snapshotImage.setAttribute("class", classes);
+          snapshotsContainer.appendChild(snapshotImage);
+          firstImage = false;
+        });
       }
-      return null;
-    }
 
-    function preprocessSnapshots() {
-      const snapshotsContainer = document.querySelector(
-        ".snapshots-container",
-      );
-      let firstImage = true;
-      SNAPSHOTS.forEach((snapshot) => {
-        let start = snapshot.start;
-        let source = snapshot.source;
-        let snapshotImage = document.createElement("img");
-        snapshotImage.setAttribute("data-start", start);
-        snapshotImage.setAttribute("src", source);
-        let classes =  "object-scale-down h-full " + (firstImage ? "": "hidden");
-        snapshotImage.setAttribute("class", classes);
-        snapshotsContainer.appendChild(snapshotImage);
-        firstImage = false;
-      });
-    }
-
-    function preprocessChapters() {
-      const chaptersContainer = document.querySelector(
-        ".chapters-container",
-      );
-      CHAPTERS.forEach((chapter) => {
-        let title = chapter.title;
-        let description = chapter.description;
-        let chapterDiv = document.createElement("div");
-        chapterDiv.innerHTML = `
+      function preprocessChapters() {
+        const chaptersContainer = document.querySelector(".chapters-container");
+        CHAPTERS.forEach((chapter) => {
+          let title = chapter.title;
+          let description = chapter.description;
+          let chapterDiv = document.createElement("div");
+          chapterDiv.innerHTML = `
           <h2>${marked.parse(title)}</h2>
           <p>${marked.parse(description)}</p>
         `;
-        chaptersContainer.appendChild(chapterDiv);
+          chaptersContainer.appendChild(chapterDiv);
 
-        chapter.summaries.forEach((summary) => {
-          let start = summary.start;
-          let title = summary.title;
-          let summaryStartTime = timeStringToSeconds(start);
-          let description = summary.description;
-          let summaryDiv = document.createElement("div");
-          summaryDiv.setAttribute("data-start", start);
-          summaryDiv.setAttribute("class", "summary-container");
-          summaryDiv.innerHTML = `
-            <div class="text-sm ml-5 cursor-pointer hover:bg-slate-50">${marked.parse(start + ' : ' + description)}</div>
+          chapter.summaries.forEach((summary) => {
+            let start = summary.start;
+            let title = summary.title;
+            let summaryStartTime = timeStringToSeconds(start);
+            let description = summary.description;
+            let summaryDiv = document.createElement("div");
+            summaryDiv.setAttribute("data-start", start);
+            summaryDiv.setAttribute("class", "summary-container");
+            summaryDiv.innerHTML = `
+            <div class="text-sm ml-5 cursor-pointer hover:bg-slate-50">${marked.parse(
+              start + " : " + description,
+            )}</div>
             <div class="transcripts"></div>
           `;
-          chapterDiv.appendChild(summaryDiv);
+            chapterDiv.appendChild(summaryDiv);
+          });
         });
-      });
-    }
-
-    function timeStringToSeconds(timeString) {
-      let parts = timeString.split(":");
-
-      let hours = 0;
-      let minutes = parseInt(parts[0], 10);
-      let seconds = parseInt(parts[1], 10);
-
-      if (parts.length > 2) {
-        let secondsParts = parts[2].split(".");
-        hours = parseInt(parts[0], 10);
-        minutes = parseInt(parts[1], 10);
-        seconds = parseInt(secondsParts[0], 10);
       }
 
-      return hours * 3600 + minutes * 60 + seconds;
-    }
+      function timeStringToSeconds(timeString) {
+        let parts = timeString.split(":");
 
-    document.addEventListener("DOMContentLoaded", function () {
-      preprocessChapters();
-      preprocessSnapshots();
-      preprocessVTTContent();
+        let hours = 0;
+        let minutes = parseInt(parts[0], 10);
+        let seconds = parseInt(parts[1], 10);
 
-      let summaryDivs = document.querySelectorAll("div[data-start]");
-      summaryDivs.forEach(function (div) {
-        div.addEventListener("click", function () {
-          let start = this.getAttribute("data-start");
-          setAudioPlayerOffset(start);
+        if (parts.length > 2) {
+          let secondsParts = parts[2].split(".");
+          hours = parseInt(parts[0], 10);
+          minutes = parseInt(parts[1], 10);
+          seconds = parseInt(secondsParts[0], 10);
+        }
+
+        return hours * 3600 + minutes * 60 + seconds;
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        preprocessChapters();
+        preprocessSnapshots();
+        preprocessVTTContent();
+
+        let summaryDivs = document.querySelectorAll("div[data-start]");
+        summaryDivs.forEach(function (div) {
+          div.addEventListener("click", function () {
+            let start = this.getAttribute("data-start");
+            setAudioPlayerOffset(start);
+          });
+        });
+
+        summaryDivs = document.querySelectorAll("div[data-chapter-start]");
+        summaryDivs.forEach(function (div) {
+          let start = div.getAttribute("data-chapter-start");
+          div.querySelector("h2").addEventListener("click", function () {
+            setAudioPlayerOffset(start);
+          });
+        });
+
+        let audioPlayer = document.getElementById("audioPlayer");
+        audioPlayer.addEventListener("timeupdate", updateHighlightBasedOnTime);
+
+        const audioPlayerContainer = document.getElementById(
+          "audioPlayerContainer",
+        );
+        const expandPlayerIcon = document.getElementById("expandPlayerIcon");
+        const snapshotsContainer = document.querySelector(
+          ".snapshots-container",
+        );
+
+        if (SNAPSHOTS.length === 0) {
+          expandPlayerIcon.classList.add("hidden");
+          document.getElementById("audioPlayer").setAttribute("class", "mx-5 w-full");
+        }
+
+        expandPlayerIcon.addEventListener("click", function () {
+          if (
+            audioPlayerContainer.classList.contains("audio-player-expanded")
+          ) {
+            audioPlayerContainer.classList.remove("audio-player-expanded");
+            audioPlayerContainer.classList.add("audio-player-collapsed");
+            expandPlayerIcon
+              .querySelector("svg")
+              .classList.remove("rotate-180");
+          } else {
+            audioPlayerContainer.classList.remove("audio-player-collapsed");
+            audioPlayerContainer.classList.add("audio-player-expanded");
+            expandPlayerIcon.querySelector("svg").classList.add("rotate-180");
+          }
         });
       });
+    </script>
+  </head>
 
-      summaryDivs = document.querySelectorAll("div[data-chapter-start]");
-      summaryDivs.forEach(function (div) {
-        let start = div.getAttribute("data-chapter-start");
-        div.querySelector("h2").addEventListener("click", function () {
-          setAudioPlayerOffset(start);
-        });
-      });
-
-      let audioPlayer = document.getElementById("audioPlayer");
-      audioPlayer.addEventListener("timeupdate", updateHighlightBasedOnTime);
-    });
-  </script>
-</head>
-
-<body class="relative">
-  <div class="prose max-w-full text-center bg-white">
-    <h1 class="">[[title]]</h1>
-  </div>
-  <div class="prose container mx-auto max-w-none lg:max-w-screen-lg mb-32">
-    <div class="flex-1 overflow-auto">
-      <div class="chapters-container w-full p-5">
-        <div>[[description]]</div>
+  <body class="relative">
+    <div class="prose max-w-full text-center bg-white">
+      <h1 class="">[[title]]</h1>
+    </div>
+    <div class="prose container mx-auto max-w-none lg:max-w-screen-lg mb-32">
+      <div class="flex-1 overflow-auto">
+        <div class="chapters-container w-full p-5">
+          <div>[[description]]</div>
+        </div>
       </div>
     </div>
-  </div>
-  <div id="audioPlayerContainer" class="flex justify-between items-center h-24 bg-gray-200 fixed bottom-0 left-0 right-0 z-10">
-  <div id="expandPlayerIcon" class="absolute top-0 left-1/2 transform -translate-x-1/2 cursor-pointer z-20">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-    </svg>
-  </div>
-    <audio id="audioPlayer" class="mx-5 lg:w-4/5 md:w-2/3" controls>
-      <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
-      Your browser does not support the audio element.
-    </audio>
-    <div class="snapshots-container flex-1 h-full flex items-center justify-end overflow-hidden cursor-pointer"></div>
-  </div>
-</body>
+    <div
+      id="audioPlayerContainer"
+      class="flex justify-between items-center h-24 bg-gray-200 fixed bottom-0 left-0 right-0 z-10"
+    >
+      <div
+        id="expandPlayerIcon"
+        class="absolute top-0 left-1/2 transform -translate-x-1/2 cursor-pointer z-20"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M5 15l7-7 7 7"
+          />
+        </svg>
+      </div>
+      <audio id="audioPlayer" class="mx-5 lg:w-4/5 md:w-2/3" controls>
+        <source id="audioSource" src="./audio.mp3" type="audio/mpeg" />
+        Your browser does not support the audio element.
+      </audio>
+      <div
+        class="snapshots-container flex-1 h-full flex items-center justify-end overflow-hidden"
+      ></div>
+    </div>
+  </body>
 </html>
 <style>
-.audio-player-expanded {
-  height: 80vh;
-  flex-direction: column-reverse;
-}
-.audio-player-expanded #audioPlayer {
-  margin-top: 5px;
-  width: 100%;
-}
-.audio-player-collapsed {
-  height: 100px;
-}
+  .audio-player-expanded {
+    height: 80vh;
+    flex-direction: column-reverse;
+  }
+  .audio-player-expanded #audioPlayer {
+    margin-top: 5px;
+    width: 100%;
+  }
+  .audio-player-collapsed {
+    height: 100px;
+  }
 </style>
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const audioPlayerContainer = document.getElementById('audioPlayerContainer');
-    const expandPlayerIcon = document.getElementById('expandPlayerIcon');
-    const snapshotsContainer = document.querySelector('.snapshots-container');
-    if (SNAPSHOTS.length === 0) {
-      expandPlayerIcon.style.display = 'none';
-    }
-
-    expandPlayerIcon.addEventListener('click', function () {
-      if (audioPlayerContainer.classList.contains('audio-player-expanded')) {
-        audioPlayerContainer.classList.remove('audio-player-expanded');
-        audioPlayerContainer.classList.add('audio-player-collapsed');
-        expandPlayerIcon.querySelector('svg').classList.remove('rotate-180');
-      } else {
-        audioPlayerContainer.classList.remove('audio-player-collapsed');
-        audioPlayerContainer.classList.add('audio-player-expanded');
-        expandPlayerIcon.querySelector('svg').classList.add('rotate-180');
-      }
-    });
-
-    snapshotsContainer.addEventListener('click', function () {
-      audioPlayerContainer.classList.add('audio-player-expanded');
-      expandPlayerIcon.querySelector('svg').classList.add('rotate-180');
-    });
-  });
-</script>
