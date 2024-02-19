@@ -142,7 +142,7 @@
           let description = chapter.description;
           let chapterDiv = document.createElement("div");
           chapterDiv.innerHTML = `
-          <h2>${marked.parse(title)}</h2>
+          <h2>${title}</h2>
           <p>${marked.parse(description)}</p>
         `;
           chaptersContainer.appendChild(chapterDiv);
@@ -333,7 +333,7 @@
         </svg>
       </div>
       <div
-        class="snapshots-container flex-1 h-full flex items-center justify-end overflow-hidden"
+        class="snapshots-container flex-1 h-full flex items-center justify-end overflow-hidden select-none"
       ></div>
     </div>
   </body>
