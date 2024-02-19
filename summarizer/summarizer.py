@@ -12,7 +12,7 @@ import click
 
 from .ffmpeg import create_lower_quality_mp3, file_contains_video_or_audio
 from .ffmpeg import logger as ffmpeg_logger
-from .templates import run_summary_chain, run_title_chain
+from .templates import run_time_chain, run_clif_chain, run_title_chain
 from .snapshots import (
     create_snapshots_at_time_increments,
     create_snapshots_file,
@@ -132,22 +132,34 @@ async def update_snapshots(dirname: str, file_path: str, has_video: bool, quiet:
     create_snapshots_file(dirname)
 
 
-def update_time_summary(dirname: str, quiet: bool, transcript_json):
+def update_time_summary(dirname: str, quiet: bool, transcript_type: str, transcript_json):
+    if transcript_type == "time":
+        chain = run_time_chain
+    elif transcript_type == "clif":
+        chain = run_clif_chain
+    else:
+        print(f"Template {transcript_type} not found, exiting...") if not quiet else None
+        return sys.exit(1)
+
     print("Generating summary...") if not quiet else None
     transcript_text = "\n".join(
-        [f"{s['start']} : {s['text']}" for s in transcript_json]
+        [f"id({i})|start({s['start']}) : {s['text']}" for i, s in enumerate(transcript_json)]
     )
 
     chapters_json = generate_summary(
-        run_summary_chain,
+        chain,
         transcript_text,
         os.path.join(dirname, "chapters.json"),
         quiet,
     )
 
+    return chapters_json
+
+
+def update_title(dirname: str, quiet: bool, chapters_json):
     print("Generating title...") if not quiet else None
     chapters = "Sections:\n" + "\n".join(
-        [f"{s['title']} : {s['description']}" for s in chapters_json]
+        [f"{s['title']} : {s['conclusion']}" for s in chapters_json]
     )
     generate_summary(
         run_title_chain, chapters, os.path.join(dirname, "title.json"), quiet
@@ -168,8 +180,9 @@ async def update_all(
 
     await update_snapshots(dirname, file_path, has_video, quiet, snapshot_min_secs, transcript_json)
 
-    if template == "time":
-        update_time_summary(dirname, quiet, transcript_json)
+    chapters_json = update_time_summary(dirname, quiet, template, transcript_json)
+
+    update_title(dirname, quiet, chapters_json)
 
     last_dir = os.path.basename(os.path.dirname(dirname + "/fake.txt"))
     await update_html(dirname, last_dir, title)
@@ -195,7 +208,7 @@ async def update_all(
 @click.option(
     "--title", help="Specify a title for the summary (default: auto-generated)"
 )
-@click.option("--template", default="time", help="Specify a built-in LLM template to generate summary (time)")
+@click.option("--template", default="time", type=click.Choice(["time", "clif"]), help="Specify a built-in LLM template to generate summary (time, clif) (default: time)")
 @click.option("--quiet", "-q", default=False, help="Suppress any console output")
 @click.option(
     "--snapshot-min-secs",

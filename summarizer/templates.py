@@ -4,7 +4,7 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.output_parsers import JsonOutputParser
 
 
-SUMMARY_TEMPLATE = """\
+TIME_TEMPLATE = """\
 Transcript:
 
 {source_text}
@@ -24,34 +24,66 @@ Given the transcript and the timestamp of images (if available), identify any si
 
 """
 
-class SummaryItem(BaseModel):
-    start: str = Field(pattern=r'^\d{2}:\d{2}:\d{2}$')
-    title: str
-    description: str
+CLIF_TEMPLATE = """\
+Transcript:
 
-class SectionItem(BaseModel):
-    title: str
-    description: str
-    summaries: List[SummaryItem]
+{source_text}
 
-class SummaryModel(BaseModel):
-    sections: List[SectionItem]
+***
 
-summary_parser = JsonOutputParser(pydantic_object=SummaryModel)
+Based on the transcript create an article of all topics covered in the transcript, with detailed descriptions of the content:
+- Identify the main topics of the transcript.
+- For each topic:
+    - Highlight essential concepts, theories, and developments discussed in each segment.
+    - Include essential details such as key individuals, locations, and events.
+    - Offer succinct yet complete overview, with an introduction and conclusion for each section.
+    - Give responses in markdown. Use latex $ format for equations and numbers with units.
+    - Use ```mermaid ``` code blocks if making a diagram.
 
-summary_prompt = PromptTemplate(
-    template=SUMMARY_TEMPLATE,
+{format_instructions}
+
+***
+
+"""
+
+class Paragraph(BaseModel):
+    sourceIds: List[int] = Field(description="What source id numbers this paragragh is composed of")
+    markdown: str = Field(description="A formatted paragraph.")
+
+class Topic(BaseModel):
+    title: str = Field(description="A title that represents the topic.")
+    introduction: str = Field(description="A markdown formatted introduction to the paragraphs of a section. ")
+    paragraphs: List[Paragraph]
+    conclusion: str = Field(description="A markdown formatted conclusion of the paragraphs of a section. ")
+
+class Article(BaseModel):
+    topics: List[Topic]
+
+summary_parser = JsonOutputParser(pydantic_object=Article)
+
+time_prompt = PromptTemplate(
+    template=TIME_TEMPLATE,
     input_variables=["source_text"],
     partial_variables={"format_instructions": summary_parser.get_format_instructions()},
 )
 
-def run_summary_chain(model, source_text):
-    chain = summary_prompt | model | summary_parser
-    results = chain.invoke({"source_text": source_text})['sections']
+def run_time_chain(model, source_text):
+    chain = time_prompt | model | summary_parser
+    results = chain.invoke({"source_text": source_text})['topics']
     for section in results:
         for summary in section['summaries']:
-            summary['description'] = ' * ' + summary['description']
+            summary['markdown'] = ' * ' + summary['markdown']
     return results
+
+clif_prompt = PromptTemplate(
+    template=CLIF_TEMPLATE,
+    input_variables=["source_text"],
+    partial_variables={"format_instructions": summary_parser.get_format_instructions()},
+)
+
+def run_clif_chain(model, source_text):
+    chain = time_prompt | model | summary_parser
+    return chain.invoke({"source_text": source_text})['topics']
 
 
 TITLE_TEMPLATE = """\

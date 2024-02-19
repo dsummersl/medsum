@@ -138,25 +138,23 @@
       function preprocessChapters() {
         const chaptersContainer = document.querySelector(".chapters-container");
         CHAPTERS.forEach((chapter) => {
-          let title = chapter.title;
           let description = chapter.description;
           let chapterDiv = document.createElement("div");
           chapterDiv.innerHTML = `
-          <h2>${title}</h2>
-          <p>${marked.parse(description)}</p>
+          <h2>${chapter.title}</h2>
+          <p>${marked.parse(chapter.introduction)}</p>
+          <p>${marked.parse(chapter.conclusion)}</p>
         `;
           chaptersContainer.appendChild(chapterDiv);
 
-          chapter.summaries.forEach((summary) => {
-            let start = summary.start;
-            let title = summary.title;
+          chapter.paragraphs.forEach((summary) => {
+            let start = TRANSCRIPT[summary.sourceIds[0] ].start
             let summaryStartTime = timeStringToSeconds(start);
-            let description = summary.description;
             let summaryDiv = document.createElement("div");
             summaryDiv.setAttribute("data-start", start);
             summaryDiv.setAttribute("class", "summary-container");
             summaryDiv.innerHTML = `
-            <div class="cursor-pointer hover:bg-slate-50">${marked.parse(description)}</div>
+            <div class="cursor-pointer hover:bg-slate-50">${marked.parse(summary.markdown)}</div>
             <div class="transcripts"></div>
           `;
             chapterDiv.appendChild(summaryDiv);
