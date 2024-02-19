@@ -156,9 +156,7 @@
             summaryDiv.setAttribute("data-start", start);
             summaryDiv.setAttribute("class", "summary-container");
             summaryDiv.innerHTML = `
-            <div class="text-sm ml-5 cursor-pointer hover:bg-slate-50">${marked.parse(
-              start + " : " + description,
-            )}</div>
+            <div class="cursor-pointer hover:bg-slate-50">${marked.parse(description)}</div>
             <div class="transcripts"></div>
           `;
             chapterDiv.appendChild(summaryDiv);

@@ -47,8 +47,11 @@ summary_prompt = PromptTemplate(
 
 def run_summary_chain(model, source_text):
     chain = summary_prompt | model | summary_parser
-    return chain.invoke({"source_text": source_text})['sections']
-
+    results = chain.invoke({"source_text": source_text})['sections']
+    for section in results:
+        for summary in section['summaries']:
+            summary['description'] = ' * ' + summary['description']
+    return results
 
 
 TITLE_TEMPLATE = """\

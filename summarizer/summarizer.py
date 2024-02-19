@@ -43,7 +43,7 @@ def coro(f):
     return wrapper
 
 
-async def create_index(dir: str, output_path: str, title: str):
+async def update_html(dir: str, output_path: str, title: str):
     """Generate an index.html and dir-name html file for the directory"""
     index_path = os.path.join(dir, "index.html")
     dir_path = os.path.join(dir, f"{output_path}.html")
@@ -110,16 +110,7 @@ def extract_summary_start_times(dir: str):
     return parser.start_times
 
 
-async def update_index(
-    file_path: str,
-    dirname: str,
-    title: str,
-    transcript: str,
-    summary_min_mins: int,
-    snapshot_min_secs: int,
-    has_video: bool,
-    quiet: bool,
-):
+async def update_transcript(dirname: str, quiet: bool, transcript: str):
     print("Creating transcript...") if not quiet else None
     transcript_json = []
     if transcript:
@@ -131,12 +122,17 @@ async def update_index(
     elif not os.path.exists(f"{dir}/transcript.json"):
         print("Generating transcript...") if not quiet else None
         transcript_json = await create_transcript(f"{dirname}/audio.mp3", dirname)
+    return transcript_json
 
+
+async def update_snapshots(dirname: str, file_path: str, has_video: bool, quiet: bool, snapshot_min_secs: int, transcript_json):
     if has_video:
         print("Generating snapshots...") if not quiet else None
         await create_snapshots_at_time_increments(file_path, dirname, snapshot_min_secs, transcript_json)
     create_snapshots_file(dirname)
 
+
+def update_summary(dirname: str, quiet: bool, transcript_json):
     print("Generating chapters...") if not quiet else None
     transcript_text = "\n".join(
         [f"{s['start']} : {s['text']}" for s in transcript_json]
@@ -157,61 +153,25 @@ async def update_index(
         run_title_chain, chapters, os.path.join(dirname, "title.json"), quiet
     )
 
-    last_dir = os.path.basename(os.path.dirname(dirname + "/fake.txt"))
-    await create_index(dirname, last_dir, title)
 
 
-@click.group()
-def cli():
-    pass
-
-
-@click.command("update-index")
-@click.argument("summary_path")
-@click.option("--quiet", "-q", default=False, help="Suppress printing activities")
-@click.option(
-    "--snapshot-min-secs",
-    default=10,
-    help="Minimum interval between video snapshots in seconds (default: 10)",
-)
-@click.option(
-    "--summary-min-mins",
-    default=2,
-    help="When summarizing, minimum number of minutes in each summary (default: 2)",
-)
-@click.option(
-    "--title", help="Specify a title for the summary (default: auto-generated)"
-)
-@coro
-async def update_index_cli(
-    summary_path, snapshot_min_secs, summary_min_mins, quiet, title
+async def update_all(
+    file_path: str,
+    dirname: str,
+    title: str,
+    transcript: str,
+    snapshot_min_secs: int,
+    has_video: bool,
+    quiet: bool,
 ):
-    """Regenerate the transcript, summary, and index of a previously summarized directory.
+    transcript_json = await update_transcript(dirname, quiet, transcript)
 
-    This command is useful if you want to refresh/update an existing summary:
-    - Regenerates the summary if it doesn't exist.
-    - Regenerates the transcript if it doesn't exist.
-    - Regenerates the HTML files (you can get the latest version created by this script).
+    await update_snapshots(dirname, file_path, has_video, quiet, snapshot_min_secs, transcript_json)
 
-    Limitations:
-    - Since it doesn't have access to the original media file, it can't generate
-      snapshots (but you can trim out any snapshots from the directory, and
-      they'll be removed from the final HTML file).
-    """
-    await update_index(
-        None,
-        summary_path,
-        (
-            summary_path + "/transcript.json"
-            if os.path.exists(summary_path + "/transcript.json")
-            else None
-        ),
-        title,
-        summary_min_mins,
-        snapshot_min_secs,
-        False,
-        quiet,
-    )
+    update_summary(dirname, quiet, transcript_json)
+
+    last_dir = os.path.basename(os.path.dirname(dirname + "/fake.txt"))
+    await update_html(dirname, last_dir, title)
 
 
 @click.command()
@@ -235,16 +195,12 @@ async def update_index_cli(
 @click.option(
     "--title", help="Specify a title for the summary (default: auto-generated)"
 )
+@click.option("--flavor", "-f", default="time", help="Specify the summarization flavor (time)")
 @click.option("--quiet", "-q", default=False, help="Suppress printing activities")
 @click.option(
     "--snapshot-min-secs",
     default=5,
     help="Minimum interval between video snapshots in seconds (default: 10)",
-)
-@click.option(
-    "--summary-min-mins",
-    default=2,
-    help="When summarizing, minimum number of minutes in each summary (default: 2)",
 )
 @click.option(
     "--level",
@@ -259,9 +215,9 @@ async def summarize(
     output,
     open,
     title,
+    flavor,
     quiet,
     level,
-    summary_min_mins,
     snapshot_min_secs,
     snapshots,
 ):
@@ -292,12 +248,11 @@ async def summarize(
     print("Generating audio sample...") if not quiet else None
     create_lower_quality_mp3(file_path, dirname)
 
-    await update_index(
+    await update_all(
         file_path,
         dirname,
         title,
         transcript,
-        summary_min_mins,
         snapshot_min_secs,
         has_video and snapshots,
         quiet,
@@ -308,9 +263,5 @@ async def summarize(
         subprocess.Popen(["open", f"{dirname}/index.html"])
 
 
-cli.add_command(summarize)
-cli.add_command(update_index_cli)
-
-
 if __name__ == "__main__":
-    cli()
+    summarize()

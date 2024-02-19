@@ -29,7 +29,7 @@ python_paths = ["summarizer"]
 addopts = "--cov=summarizer"
 
 [tool.poetry.scripts]
-tldl = "summarizer.summarizer:cli"
+tldl = "summarizer.summarizer:summarize"
 
 [build-system]
 requires = ["poetry-core"]
