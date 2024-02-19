@@ -135,14 +135,9 @@ async def update_index(
     if has_video:
         print("Generating snapshots...") if not quiet else None
         await create_snapshots_at_time_increments(file_path, dirname, snapshot_min_secs)
-    snapshots = create_snapshots_file(dirname)
+    create_snapshots_file(dirname)
 
     print("Generating chapters...") if not quiet else None
-    # snapshot_text = (
-    #     "Snapshots:\n"
-    #     + "\n".join([f"{s['start']} : {s['source']}" for s in snapshots])
-    #     + "\n\nTranscript:\n"
-    # )
     transcript_text = "\n".join(
         [f"{s['start']} : {s['text']}" for s in transcript_json]
     )
