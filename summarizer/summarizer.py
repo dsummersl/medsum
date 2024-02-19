@@ -132,8 +132,8 @@ async def update_snapshots(dirname: str, file_path: str, has_video: bool, quiet:
     create_snapshots_file(dirname)
 
 
-def update_summary(dirname: str, quiet: bool, transcript_json):
-    print("Generating chapters...") if not quiet else None
+def update_time_summary(dirname: str, quiet: bool, transcript_json):
+    print("Generating summary...") if not quiet else None
     transcript_text = "\n".join(
         [f"{s['start']} : {s['text']}" for s in transcript_json]
     )
@@ -154,10 +154,10 @@ def update_summary(dirname: str, quiet: bool, transcript_json):
     )
 
 
-
 async def update_all(
     file_path: str,
     dirname: str,
+    template: str,
     title: str,
     transcript: str,
     snapshot_min_secs: int,
@@ -168,7 +168,8 @@ async def update_all(
 
     await update_snapshots(dirname, file_path, has_video, quiet, snapshot_min_secs, transcript_json)
 
-    update_summary(dirname, quiet, transcript_json)
+    if template == "time":
+        update_time_summary(dirname, quiet, transcript_json)
 
     last_dir = os.path.basename(os.path.dirname(dirname + "/fake.txt"))
     await update_html(dirname, last_dir, title)
@@ -178,14 +179,13 @@ async def update_all(
 @click.argument("file_path")
 @click.option(
     "--transcript",
-    "-t",
     type=click.Path(exists=True),
-    help="Path to supplied transcript (if supplied, medsum won't generate one)",
+    help="Path to supplied transcript (default: auto-generated)",
 )
 @click.option("--output", "-o", default=None, help="Where to drop the output files")
 @click.option(
     "--open/--no-open",
-    "-p",
+    "-o",
     default=False,
     help="Open the index.html file in a browser",
 )
@@ -195,8 +195,8 @@ async def update_all(
 @click.option(
     "--title", help="Specify a title for the summary (default: auto-generated)"
 )
-@click.option("--flavor", "-f", default="time", help="Specify the summarization flavor (time)")
-@click.option("--quiet", "-q", default=False, help="Suppress printing activities")
+@click.option("--template", default="time", help="Specify a built-in LLM template to generate summary (time)")
+@click.option("--quiet", "-q", default=False, help="Suppress any console output")
 @click.option(
     "--snapshot-min-secs",
     default=5,
@@ -215,7 +215,7 @@ async def summarize(
     output,
     open,
     title,
-    flavor,
+    template,
     quiet,
     level,
     snapshot_min_secs,
@@ -251,6 +251,7 @@ async def summarize(
     await update_all(
         file_path,
         dirname,
+        template,
         title,
         transcript,
         snapshot_min_secs,
