@@ -31,17 +31,6 @@ async def test_create_transcript(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_chat():
-    with patch(
-        "llm.ChatOpenAI.ainvoke", return_value=MagicMock(content="content<|end|>")
-    ) as mock_chat:
-        response = await llm.chat("prompt")
-        assert response == "content"
-        assert "<|end|>" not in response
-        mock_chat.assert_called_once_with("prompt")
-
-
-@pytest.mark.asyncio
 async def test_convert_transcript_to_json():
     json_output = llm.convert_transcript_to_json("tests/fixtures/sample.vtt")
     assert isinstance(json_output, list)

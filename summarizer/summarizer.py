@@ -12,7 +12,7 @@ import click
 
 from .ffmpeg import create_lower_quality_mp3, file_contains_video_or_audio
 from .ffmpeg import logger as ffmpeg_logger
-from .templates import SUMMARY_TEMPLATE, TITLE_TEMPLATE
+from .templates import run_summary_chain, run_title_chain
 from .snapshots import (
     create_snapshots_at_time_increments,
     create_snapshots_file,
@@ -142,19 +142,19 @@ async def update_index(
         [f"{s['start']} : {s['text']}" for s in transcript_json]
     )
 
-    chapters_json = await generate_summary(
+    chapters_json = generate_summary(
+        run_summary_chain,
         transcript_text,
         os.path.join(dirname, "chapters.json"),
-        SUMMARY_TEMPLATE,
-        quiet
+        quiet,
     )
 
     print("Generating title...") if not quiet else None
     chapters = "Sections:\n" + "\n".join(
         [f"{s['title']} : {s['description']}" for s in chapters_json]
     )
-    await generate_summary(
-        chapters, os.path.join(dirname, "title.json"), TITLE_TEMPLATE, quiet
+    generate_summary(
+        run_title_chain, chapters, os.path.join(dirname, "title.json"), quiet
     )
 
     last_dir = os.path.basename(os.path.dirname(dirname + "/fake.txt"))

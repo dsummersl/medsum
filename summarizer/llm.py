@@ -72,50 +72,31 @@ async def create_transcript(media_path: str, dir: str) -> List[Dict]:
     return convert_transcript_to_json(f"{dir}/transcript.vtt")
 
 
-async def chat(prompt: str) -> str:
-    """Chat with the LLM"""
-    logger.info("Chatting with LLM...")
-    message = await llm.ainvoke(prompt)
-    if not isinstance(message.content, str):
-        raise ValueError(f"Expected string, got {type(message.content)}")
-    return message.content.replace("<|end|>", "").strip()
-
-
-async def generate_summary(
+def generate_summary(
+    chain,
     source_text: str,
     dest: str,
-    template: str,
     quiet: bool,
-    minimum_summary_minutes: int | None = None,
-    source_in_all_prompts_text: str | None = None,
 ) -> List[Dict]:
     """Summarize a text file, and save it to a destination"""
     if os.path.exists(dest):
         logger.info("Summary already exists, skipping...")
         return json.loads(open(dest).read())
 
-    source_in_all_prompts_text = source_in_all_prompts_text or ""
-
     logger.info("Generating summary...")
-
-    if len(source_in_all_prompts_text) > CHUNK_SIZE:
-        logger.warning(
-            f"source_in_all_prompts_text is too long (not using): {len(source_in_all_prompts_text)}"
-        )
-        source_in_all_prompts_text = ""
 
     # Split the transcript text into chunks
     chunks = [
-        source_in_all_prompts_text + source_text[i : i + CHUNK_SIZE]
+        source_text[i : i + CHUNK_SIZE]
         for i in range(
-            0, len(source_text), CHUNK_SIZE - len(source_in_all_prompts_text)
+            0, len(source_text), CHUNK_SIZE
         )
     ]
 
     # List to hold summaries of each chunk
     summaries = []
 
-    # TODO maybe replace all this with ReduceDocumentsChain?
+    # TODO maybe replace all this with ReduceDocumentsChain: https://python.langchain.com/docs/use_cases/summarization#option-2.-map-reduce
     count = 1
     for chunk in chunks:
         (
@@ -123,23 +104,17 @@ async def generate_summary(
             if not quiet
             else None
         )
-        parameters = {
-            "source_text": chunk,
-        }
-        if minimum_summary_minutes is not None:
-            parameters["minimum_summary_minutes"] = str(minimum_summary_minutes)
-        if minimum_summary_minutes is not None:
-            parameters["minimum_summary_minutes"] = str(minimum_summary_minutes)
-        prompt = template.format(**parameters)
-        response = await chat(prompt)
-        summaries.append(response)
+        response = chain(llm, chunk)
+        if isinstance(response, list):
+            summaries.extend(response)
+        else:
+            summaries = response
         count += 1
 
     logger.info("Joining summaries, and saving...")
-    combined_summary_as_yaml = "---\n" + "\n".join(summaries)
-    combined_summary = yaml.safe_load(combined_summary_as_yaml)
+    logger.debug(summaries)
 
     with open(dest, "w") as file:
-        file.write(json.dumps(combined_summary, indent=2))
+        file.write(json.dumps(summaries, indent=2))
 
-    return combined_summary
+    return summaries
