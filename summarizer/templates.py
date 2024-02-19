@@ -11,12 +11,13 @@ Transcript:
 
 ***
 
-Given the transcript and the timestamp of images (if available), identify any significant changes in the conversation and topics discussed.
-- A section should summarize the topics of the time period.
-- Mention key who/what/where in all description fields.
-- Each summary section should summarize AT LEAST one entry of the transcript and aim to include multiple entries where relevant.
-- The description of each section should account for all the summaries included in that section, providing an overview that encompasses all key points.
-- Use only the timestamps provided in the transcript for the start values in the summaries.
+Based on the transcript create summary of all topics covered, with detailed descriptions of the content:
+- Identify the main topics discussed in the transcript, grouped by the time period of the conversation.
+- For each topic:
+    - Offer succinct introduction and conclusion for each topic.
+    - Mention key who/what/where of the content.
+    - Each summary section should summarize AT LEAST one entry of the transcript and aim to include multiple entries where relevant.
+- Language should be terse, clear, and lacking all unnecessary words.
 
 {format_instructions}
 
@@ -31,14 +32,17 @@ Transcript:
 
 ***
 
-Based on the transcript create an article of all topics covered in the transcript, with detailed descriptions of the content:
+Based on the transcript create an article of all topics covered, with detailed descriptions of the content:
 - Identify the main topics of the transcript.
+- Content can range over all the transcript source so long as its relevant to the topic at hand.
 - For each topic:
-    - Highlight essential concepts, theories, and developments discussed in each segment.
+    - Highlight essential concepts, theories, and developments discussed in each topic.
     - Include essential details such as key individuals, locations, and events.
     - Offer succinct yet complete overview, with an introduction and conclusion for each section.
     - Give responses in markdown. Use latex $ format for equations and numbers with units.
     - Use ```mermaid ``` code blocks if making a diagram.
+    - Include an overview of any equations, diagrams that would be helpful to understand the topic.
+- Language should be terse, clear, and lacking all unnecessary words.
 
 {format_instructions}
 
@@ -52,9 +56,9 @@ class Paragraph(BaseModel):
 
 class Topic(BaseModel):
     title: str = Field(description="A title that represents the topic.")
-    introduction: str = Field(description="A markdown formatted introduction to the paragraphs of a section. ")
+    introduction: str = Field(description="A markdown formatted introduction to the paragraphs of a topic. ")
     paragraphs: List[Paragraph]
-    conclusion: str = Field(description="A markdown formatted conclusion of the paragraphs of a section. ")
+    conclusion: str = Field(description="A markdown formatted conclusion of the paragraphs of a topic. ")
 
 class Article(BaseModel):
     topics: List[Topic]
@@ -69,11 +73,8 @@ time_prompt = PromptTemplate(
 
 def run_time_chain(model, source_text):
     chain = time_prompt | model | summary_parser
-    results = chain.invoke({"source_text": source_text})['topics']
-    for section in results:
-        for summary in section['summaries']:
-            summary['markdown'] = ' * ' + summary['markdown']
-    return results
+    return chain.invoke({"source_text": source_text})['topics']
+
 
 clif_prompt = PromptTemplate(
     template=CLIF_TEMPLATE,
