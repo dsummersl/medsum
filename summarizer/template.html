@@ -142,11 +142,14 @@
             chapterDiv.appendChild(summaryDiv);
           });
 
-          chapterDiv = document.createElement("div");
-          chapterDiv.innerHTML = `
-            <p>${marked.parse(chapter.conclusion)}</p>
-          `;
-          chaptersContainer.appendChild(chapterDiv);
+          // sometimes we lose a conclusion:
+          if (chapter?.conclusion?.length > 0) {
+            chapterDiv = document.createElement("div");
+            chapterDiv.innerHTML = `
+              <p>${marked.parse(chapter.conclusion)}</p>
+            `;
+            chaptersContainer.appendChild(chapterDiv);
+          }
         });
       }
 

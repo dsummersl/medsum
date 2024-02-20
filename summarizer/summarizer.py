@@ -43,24 +43,10 @@ def coro(f):
     return wrapper
 
 
-async def update_html(dir: str, output_path: str, title: str):
+async def update_html(dir: str, output_path: str, title: str, title_data, chapters, snapshots, transcript):
     """Generate an index.html and dir-name html file for the directory"""
     index_path = os.path.join(dir, "index.html")
     dir_path = os.path.join(dir, f"{output_path}.html")
-
-    with open(os.path.join(dir, "chapters.json"), "r") as file:
-        chapters = file.read()
-
-    with open(os.path.join(dir, "title.json"), "r") as file:
-        title_data = json.loads(file.read())
-
-    with open(os.path.join(dir, "transcript.json"), "r") as file:
-        transcript = file.read()
-
-    snapshots = ""
-    if os.path.exists(os.path.join(dir, "snapshots/snapshots.json")):
-        with open(os.path.join(dir, "snapshots/snapshots.json"), "r") as file:
-            snapshots = file.read()
 
     logger.info("Generating index.html...")
 
@@ -68,7 +54,7 @@ async def update_html(dir: str, output_path: str, title: str):
     with open(index_path, "w") as file:
         file.write(
             HTML_TEMPLATE.format(
-                title=title or title_data["title"],
+                title=title_data.get("title", title),
                 description=title_data["description"],
                 chapters=chapters,
                 transcript=transcript,
@@ -80,7 +66,7 @@ async def update_html(dir: str, output_path: str, title: str):
     with open(dir_path, "w") as file:
         file.write(
             HTML_TEMPLATE.format(
-                title=output_path,
+                title=title_data.get("title", title),
                 description=title_data["description"],
                 chapters=chapters,
                 transcript=transcript,
@@ -129,10 +115,10 @@ async def update_snapshots(dirname: str, file_path: str, has_video: bool, quiet:
     if has_video:
         print("Generating snapshots...") if not quiet else None
         await create_snapshots_at_time_increments(file_path, dirname, snapshot_min_secs, transcript_json)
-    create_snapshots_file(dirname)
+    return create_snapshots_file(dirname)
 
 
-def update_time_summary(dirname: str, quiet: bool, transcript_type: str, transcript_json):
+def update_summary(dirname: str, quiet: bool, transcript_type: str, transcript_json):
     if transcript_type == "time":
         chain = run_time_chain
     elif transcript_type == "clif":
@@ -146,22 +132,20 @@ def update_time_summary(dirname: str, quiet: bool, transcript_type: str, transcr
         [f"id({i})|start({s['start']}) : {s['text']}" for i, s in enumerate(transcript_json)]
     )
 
-    chapters_json = generate_summary(
+    return generate_summary(
         chain,
         transcript_text,
-        os.path.join(dirname, "chapters.json"),
+        os.path.join(dirname, f"chapters-{transcript_type}.json"),
         quiet,
     )
-
-    return chapters_json
 
 
 def update_title(dirname: str, quiet: bool, chapters_json):
     print("Generating title...") if not quiet else None
     chapters = "Sections:\n" + "\n".join(
-        [f"{s['title']} : {s['conclusion']}" for s in chapters_json]
+        [f"{s['title']} : {s['introduction']}" for s in chapters_json]
     )
-    generate_summary(
+    return generate_summary(
         run_title_chain, chapters, os.path.join(dirname, "title.json"), quiet
     )
 
@@ -178,14 +162,14 @@ async def update_all(
 ):
     transcript_json = await update_transcript(dirname, quiet, transcript)
 
-    await update_snapshots(dirname, file_path, has_video, quiet, snapshot_min_secs, transcript_json)
+    snapshots_json = await update_snapshots(dirname, file_path, has_video, quiet, snapshot_min_secs, transcript_json)
 
-    chapters_json = update_time_summary(dirname, quiet, template, transcript_json)
+    chapters_json = update_summary(dirname, quiet, template, transcript_json)
 
-    update_title(dirname, quiet, chapters_json)
+    title_json = update_title(dirname, quiet, chapters_json)
 
     last_dir = os.path.basename(os.path.dirname(dirname + "/fake.txt"))
-    await update_html(dirname, last_dir, title)
+    await update_html(dirname, f"{last_dir}-{template}", title, title_json, chapters_json, snapshots_json, transcript_json)
 
 
 @click.command()
