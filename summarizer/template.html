@@ -127,11 +127,11 @@
           let chapterDiv = document.createElement("div");
           chapterDiv.innerHTML = `
             <h2>${chapter.title}</h2>
-            <p>${marked.parse(chapter.introduction)}</p>
+            <p>${marked.parse(chapter.summary)}</p>
           `;
           chaptersContainer.appendChild(chapterDiv);
 
-          chapter.paragraphs.forEach((summary) => {
+          chapter.insights.forEach((summary) => {
             let start = TRANSCRIPT[summary.sourceIds[0] ].start
             let summaryStartTime = timeStringToSeconds(start);
             let summaryDiv = document.createElement("div");
@@ -145,15 +145,6 @@
             summaryDiv.innerHTML =  transcriptDivs +'<div class="-mt-5">' + marked.parse(summary.markdown) + '</div>';
             chapterDiv.appendChild(summaryDiv);
           });
-
-          // sometimes we lose a conclusion:
-          if (chapter?.conclusion?.length > 0) {
-            chapterDiv = document.createElement("div");
-            chapterDiv.innerHTML = `
-              <p>${marked.parse(chapter.conclusion)}</p>
-            `;
-            chaptersContainer.appendChild(chapterDiv);
-          }
         });
       }
 
