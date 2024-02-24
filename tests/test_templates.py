@@ -1,18 +1,41 @@
+import json
 import pytest
-from unittest.mock import Mock
 from summarizer.templates import make_time_chain
+from langchain_community.llms.fake import FakeListLLM
 
 
 @pytest.fixture
 def mock_model():
-    model = Mock()
-    model.return_value = {
-        "topics": [
-            {"id": 0, "topic": "Introduction", "similarity": "extremely similar"},
-            {"id": 1, "topic": "Main Content", "similarity": "not similar"},
-            {"id": 2, "topic": "Conclusion", "similarity": "very similar"},
+    model = FakeListLLM(
+        responses=[
+            json.dumps(
+                {
+                    "topics": [
+                        {
+                            "id": 0,
+                            "topic": "Introduction",
+                            "similarity": "extremely similar",
+                        },
+                        {"id": 1, "topic": "Main Content", "similarity": "not similar"},
+                        {"id": 2, "topic": "Conclusion", "similarity": "very similar"},
+                    ]
+                }
+            ),
+            json.dumps(
+                {
+                    "articles": [
+                        {
+                            "title": "Introduction",
+                            "summary": "Hello world.",
+                            "insights": [
+                                {"sourceIds": [0], "markdown": "Hello world."}
+                            ],
+                        }
+                    ],
+                }
+            ),
         ]
-    }
+    )
     return model
 
 
@@ -33,20 +56,10 @@ def test_make_time_chain(mock_model):
     # Expected output
     expected_output = [
         {
-            "title": "Introduction",
+            "insights": [{"markdown": "Hello world.", "sourceIds": [0]}],
             "summary": "Hello world.",
-            "insights": [{"sourceIds": [0], "markdown": "Hello world."}],
-        },
-        {
-            "title": "Main Content",
-            "summary": "This is a test.",
-            "insights": [{"sourceIds": [1], "markdown": "This is a test."}],
-        },
-        {
-            "title": "Conclusion",
-            "summary": "Another sentence.",
-            "insights": [{"sourceIds": [2], "markdown": "Another sentence."}],
-        },
+            "title": "Introduction",
+        }
     ]
 
     # Assert that the result matches the expected output

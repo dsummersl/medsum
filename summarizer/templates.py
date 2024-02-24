@@ -1,7 +1,47 @@
+import concurrent.futures
+import logging
+
 from typing import List
+from langchain.text_splitter import CharacterTextSplitter
 from langchain.prompts import PromptTemplate
+from langchain_core.documents import Document
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.runnables import RunnablePassthrough, RunnableParallel
+
+
+import pdb
+
+
+logger = logging.getLogger(__name__)
+
+
+TURNS_TEMPLATE = """\
+Transcript:
+
+{source_text}
+
+***
+
+In the transcript above identify which transcript ids in the transcript mark a
+place where the topic changes. Score this transition: how similar is the new
+topic to the previous one?
+
+{format_instructions}
+
+***
+
+"""
+
+
+class SourceAndSummary(BaseModel):
+    id: int
+    topic: str = Field(description="The new topic")
+    similarity: str = Field(description="How similar is the new topic to the previous one? Options: extremely similar, very similar, somewhat similar, not similar")
+
+
+class Transitions(BaseModel):
+    topics: List[SourceAndSummary]
 
 
 TIME_TEMPLATE = """\
@@ -11,19 +51,24 @@ Transcript:
 
 ***
 
-Based on the transcript create summary of all topics covered, with detailed descriptions of the content:
-- Identify the main topics discussed in the transcript, grouped by the time period of the conversation.
-- For each topic:
-    - Offer succinct introduction and conclusion for each topic.
-    - Mention key who/what/where of the content.
-    - Each summary section should summarize AT LEAST one entry of the transcript and aim to include multiple entries where relevant.
-- Language should be terse, clear, and lacking all unnecessary words.
+Based on the transcript above group it by its common topic and summarize:
+- Identify the loose topic of the cluster of entries, and generate an introductory summary.
+- For each cluster of entries create an insightful summary for each of the following:
+  - Each individuals referenced, and their role in the topic.
+  - Times or events mentioned in the topic
+  - Locations or places mentioned in the topic
+  - Things or objects mentioned in the topic
+  - Ideas, definitions, or theories mentioned in the topic
+- Use markdown latex format when referring to symbols, and equations (for instance $x=3$).
+- Language should be terse, clear, and lack unnecessary words.
+- The entire range of transcript entries should be accounted for in the output. Every transcript entry should be part of a cluster.
 
 {format_instructions}
 
 ***
 
 """
+
 
 CLIF_TEMPLATE = """\
 Transcript:
@@ -35,14 +80,11 @@ Transcript:
 Based on the transcript create an article of all topics covered, with detailed descriptions of the content:
 - Identify the main topics of the transcript.
 - Content can range over all the transcript source so long as its relevant to the topic at hand.
-- For each topic:
-    - Highlight essential concepts, theories, and developments discussed in each topic.
-    - Include essential details such as key individuals, locations, and events.
-    - Offer succinct yet complete overview, with an introduction and conclusion for each section.
-    - Give responses in markdown. Use latex $ format for equations and numbers with units.
-    - Use ```mermaid ``` code blocks if making a diagram.
-    - Include an overview of any equations, diagrams that would be helpful to understand the topic.
-- Language should be terse, clear, and lacking all unnecessary words.
+- Offer succinct yet complete overview for each section.
+- Give responses in markdown.
+- Use latex $ format to define equations (for instance $x=3$) and numbers.
+- Define essential terms mentioned such as key individuals, theories, locations, events, and equations as markdown block quote callout blocks.
+- Include an overview of any equations, diagrams that would be helpful to understand the topic.
 
 {format_instructions}
 
@@ -50,18 +92,27 @@ Based on the transcript create an article of all topics covered, with detailed d
 
 """
 
+
 class Paragraph(BaseModel):
-    sourceIds: List[int] = Field(description="What source id numbers this paragragh is composed of")
-    markdown: str = Field(description="A formatted paragraph.")
+    sourceIds: List[int] = Field(
+        description="What source id numbers this paragragh is composed of"
+    )
+    markdown: str = Field(
+        description="A markdown formatted paragraph, possibly with katex definitions."
+    )
+
 
 class Topic(BaseModel):
     title: str = Field(description="A title that represents the topic.")
-    introduction: str = Field(description="A markdown formatted introduction to the paragraphs of a topic. ")
-    paragraphs: List[Paragraph]
-    conclusion: str = Field(description="A markdown formatted conclusion of the paragraphs of a topic. ")
+    summary: str = Field(
+        description="A markdown formatted summarizing to the insights of a topic. "
+    )
+    insights: List[Paragraph]
+
 
 class Article(BaseModel):
-    topics: List[Topic]
+    articles: List[Topic]
+
 
 summary_parser = JsonOutputParser(pydantic_object=Article)
 
@@ -71,9 +122,97 @@ time_prompt = PromptTemplate(
     partial_variables={"format_instructions": summary_parser.get_format_instructions()},
 )
 
-def run_time_chain(model, source_text):
-    chain = time_prompt | model | summary_parser
-    return chain.invoke({"source_text": source_text})['topics']
+turns_parser = JsonOutputParser(pydantic_object=Transitions)
+turns_prompt = PromptTemplate.from_template(
+    TURNS_TEMPLATE,
+    partial_variables={"format_instructions": turns_parser.get_format_instructions()},
+)
+
+def make_time_chain(transcript_json: List[dict]):
+    def _chain(model):
+        splitter = CharacterTextSplitter("\n")
+
+        def make_source_text(items):
+            return "\n".join(
+                [f"id({i})|start({s['start']}) : {s['text']}" for i, s in items]
+            )
+
+        def process_chunk(chunk: Document):
+            turns_chain = (
+                {"source_text": RunnablePassthrough()}
+                | turns_prompt
+                | model
+                | turns_parser
+            )
+            return turns_chain.invoke(chunk)
+
+        turns = []
+        documents = splitter.split_text(make_source_text(enumerate(transcript_json)))
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(
+                    process_chunk,
+                    documents)
+
+            # join together list of lists into one list
+            for result in results:
+                turns.extend(result['topics'])
+
+            if len(turns) < 2:
+                return []
+
+        # When the similarity field contains 'extremely' or 'very' we'll
+        # coalesce them together with the previous turn
+        coalesced_turn_ids = [0]
+        for i, turn in enumerate(turns):
+            is_last_turn = (i == len(turns) - 1)
+            is_similar = ('extremely' in turn['similarity'] or 'very' in turn['similarity'])
+            if not (is_similar or is_last_turn):
+                coalesced_turn_ids.append(turn['id'])
+            if is_last_turn and is_similar:
+                coalesced_turn_ids[-1] = turn['id']
+
+        # For turns we need to
+        # - create a list of ranges from the turns. For instance if we have
+        #   [ 0, 7, 22, 38 ]
+        #   then we need to create
+        #   [ (0, 7), (7, 22), (22, 38) ]
+        print(f"coalesced")
+        print(coalesced_turn_ids)
+        turn_ids = [t for t in coalesced_turn_ids]
+        ranges = list(zip(turn_ids, turn_ids[1:]))
+        logger.debug("turns", extra={"turns": turns})
+        print(turns)
+        logger.debug("computed ranges", extra={"ranges": ranges})
+        print(ranges)
+
+
+        for r in ranges:
+            source_text = make_source_text(enumerate(transcript_json[r[0]:r[1]]))
+            # logger.debug("source_text", extra={"source_text": source_text})
+            logger.debug(f"Turn {r[0]} to {r[1]}")
+            print(f"{turns[0]['topic']}")
+            print(f"---")
+            print(f"{source_text}")
+
+            # chain = (
+            #     {"source_text": RunnablePassthrough()}
+            #     | time_prompt
+            #     | model
+            #     | summary_parser
+            # )
+            # # TODO pass in just the ranges, also this could be parallelized
+            # val = chain.invoke(source_text)["articles"]
+
+        chain = (
+            {"source_text": RunnablePassthrough()}
+            | time_prompt
+            | model
+            | summary_parser
+        )
+        # TODO pass in just the ranges, also this could be parallelized
+        return chain.invoke(source_text)["articles"]
+
+    return _chain
 
 
 clif_prompt = PromptTemplate(
@@ -82,9 +221,10 @@ clif_prompt = PromptTemplate(
     partial_variables={"format_instructions": summary_parser.get_format_instructions()},
 )
 
+
 def run_clif_chain(model, source_text):
     chain = time_prompt | model | summary_parser
-    return chain.invoke({"source_text": source_text})['topics']
+    return chain.invoke({"source_text": source_text})["topics"]
 
 
 TITLE_TEMPLATE = """\
@@ -108,6 +248,7 @@ class TitleModel(BaseModel):
     title: str
     description: str
 
+
 title_parser = JsonOutputParser(pydantic_object=TitleModel)
 
 title_prompt = PromptTemplate(
@@ -115,6 +256,7 @@ title_prompt = PromptTemplate(
     input_variables=["source_text"],
     partial_variables={"format_instructions": title_parser.get_format_instructions()},
 )
+
 
 def run_title_chain(model, source_text):
     chain = title_prompt | model | title_parser
