@@ -2,6 +2,27 @@ import json
 import pytest
 from summarizer.templates import make_time_chain
 from langchain_community.llms.fake import FakeListLLM
+from summarizer.templates import make_time_chain, coalesce_similar_ids
+
+
+def test_coalesce_similar_ids():
+    # Mock turns with varying levels of similarity
+    turns = [
+        {"id": 0, "topic": "Intro", "similarity": "extremely similar"},
+        {"id": 1, "topic": "Intro Continued", "similarity": "extremely similar"},
+        {"id": 2, "topic": "Main Content", "similarity": "not similar"},
+        {"id": 3, "topic": "Main Content Continued", "similarity": "very similar"},
+        {"id": 4, "topic": "Conclusion", "similarity": "not similar"},
+    ]
+
+    # Expected coalesced IDs after processing
+    expected_coalesced_ids = [0, 2, 4]
+
+    # Coalesce the similar IDs
+    coalesced_ids = coalesce_similar_ids(turns)
+
+    # Assert that the coalesced IDs match the expected output
+    assert coalesced_ids == expected_coalesced_ids
 
 
 @pytest.fixture
