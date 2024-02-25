@@ -81,3 +81,15 @@ def test_make_time_chain(mock_model):
 
     # Assert that the result matches the expected output
     assert result == expected_output
+def test_coalesce_similar_ids_no_topics():
+    # Mock turns with no topics
+    turns = []
+
+    # Expected coalesced IDs after processing
+    expected_coalesced_ids = []
+
+    # Coalesce the similar IDs
+    coalesced_ids = coalesce_similar_ids(turns)
+
+    # Assert that the coalesced IDs match the expected output
+    assert coalesced_ids == expected_coalesced_ids
