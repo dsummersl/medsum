@@ -128,6 +128,21 @@ turns_prompt = PromptTemplate.from_template(
     partial_variables={"format_instructions": turns_parser.get_format_instructions()},
 )
 
+
+def coalesce_similar_ids(turns):
+    if len(turns) == 0:
+        return []
+
+    # When the similarity field contains 'extremely' or 'very' we'll
+    # coalesce them together with the previous turn
+    coalesced_turn_ids = []
+    for turn in turns:
+        is_similar = ('extremely' in turn['similarity'] or 'very' in turn['similarity'])
+        if not is_similar or len(coalesced_turn_ids) == 0:
+            coalesced_turn_ids.append(turn['id'])
+    return coalesced_turn_ids
+
+
 def make_time_chain(transcript_json: List[dict]):
     def _chain(model):
         splitter = CharacterTextSplitter("\n")
@@ -157,60 +172,27 @@ def make_time_chain(transcript_json: List[dict]):
             for result in results:
                 turns.extend(result['topics'])
 
-            if len(turns) < 2:
-                return []
-
-        # When the similarity field contains 'extremely' or 'very' we'll
-        # coalesce them together with the previous turn
-        coalesced_turn_ids = [0]
-        for i, turn in enumerate(turns):
-            is_last_turn = (i == len(turns) - 1)
-            is_similar = ('extremely' in turn['similarity'] or 'very' in turn['similarity'])
-            if not (is_similar or is_last_turn):
-                coalesced_turn_ids.append(turn['id'])
-            if is_last_turn and is_similar:
-                coalesced_turn_ids[-1] = turn['id']
+        coalesced_turn_ids = coalesce_similar_ids(turns)
 
         # For turns we need to
         # - create a list of ranges from the turns. For instance if we have
         #   [ 0, 7, 22, 38 ]
         #   then we need to create
         #   [ (0, 7), (7, 22), (22, 38) ]
-        print(f"coalesced")
-        print(coalesced_turn_ids)
         turn_ids = [t for t in coalesced_turn_ids]
         ranges = list(zip(turn_ids, turn_ids[1:]))
-        logger.debug("turns", extra={"turns": turns})
-        print(turns)
-        logger.debug("computed ranges", extra={"ranges": ranges})
-        print(ranges)
 
+        all_results = []
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(
+                    process_chunk,
+                    [transcript_json[r[0]:r[1]] for r in ranges])
 
-        for r in ranges:
-            source_text = make_source_text(enumerate(transcript_json[r[0]:r[1]]))
-            # logger.debug("source_text", extra={"source_text": source_text})
-            logger.debug(f"Turn {r[0]} to {r[1]}")
-            print(f"{turns[0]['topic']}")
-            print(f"---")
-            print(f"{source_text}")
+            # join together list of lists into one list
+            for result in results:
+                all_results.extend(result['articles'])
 
-            # chain = (
-            #     {"source_text": RunnablePassthrough()}
-            #     | time_prompt
-            #     | model
-            #     | summary_parser
-            # )
-            # # TODO pass in just the ranges, also this could be parallelized
-            # val = chain.invoke(source_text)["articles"]
-
-        chain = (
-            {"source_text": RunnablePassthrough()}
-            | time_prompt
-            | model
-            | summary_parser
-        )
-        # TODO pass in just the ranges, also this could be parallelized
-        return chain.invoke(source_text)["articles"]
+        return all_results
 
     return _chain
 
