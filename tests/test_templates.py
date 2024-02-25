@@ -11,11 +11,7 @@ def mock_model():
             json.dumps(
                 {
                     "topics": [
-                        {
-                            "id": 0,
-                            "topic": "Introduction",
-                            "similarity": "extremely similar",
-                        },
+                        {"id": 0, "topic": "Intro", "similarity": "extremely similar"},
                         {"id": 1, "topic": "Main Content", "similarity": "not similar"},
                         {"id": 2, "topic": "Conclusion", "similarity": "very similar"},
                     ]
@@ -56,9 +52,9 @@ def test_make_time_chain(mock_model):
     # Expected output
     expected_output = [
         {
-            "insights": [{"markdown": "Hello world.", "sourceIds": [0]}],
-            "summary": "Hello world.",
             "title": "Introduction",
+            "summary": "Hello world.",
+            "insights": [{"markdown": "Hello world.", "sourceIds": [0]}],
         }
     ]
 
