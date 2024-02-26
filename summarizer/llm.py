@@ -74,7 +74,6 @@ async def create_transcript(media_path: str, dir: str) -> List[Dict]:
 
 def generate_summary(
     chain,
-    source_text: str,
     dest: str,
     quiet: bool,
 ) -> List[Dict]:
@@ -85,31 +84,7 @@ def generate_summary(
 
     logger.info("Generating summary...")
 
-    # Split the transcript text into chunks
-    chunks = [
-        source_text[i : i + CHUNK_SIZE]
-        for i in range(
-            0, len(source_text), CHUNK_SIZE
-        )
-    ]
-
-    # List to hold summaries of each chunk
-    summaries = []
-
-    # TODO maybe replace all this with ReduceDocumentsChain: https://python.langchain.com/docs/use_cases/summarization#option-2.-map-reduce
-    count = 1
-    for chunk in chunks:
-        (
-            print(f"Generating summary for chunk {count} of {len(chunks)}...")
-            if not quiet
-            else None
-        )
-        response = chain(llm, chunk)
-        if isinstance(response, list):
-            summaries.extend(response)
-        else:
-            summaries = response
-        count += 1
+    summaries = chain(llm)
 
     logger.info("Joining summaries, and saving...")
     logger.debug(summaries)

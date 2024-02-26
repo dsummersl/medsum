@@ -5,6 +5,12 @@ from langchain_community.llms.fake import FakeListLLM
 from summarizer.templates import make_time_chain, coalesce_similar_ids
 
 
+transcript_json = [
+    {"start": "00:00:01", "text": "Hello world."},
+    {"start": "00:00:05", "text": "This is a test."},
+    {"start": "00:00:10", "text": "Another sentence."},
+]
+
 similar_turns = [
     {"id": 0, "topic": "Intro", "similarity": "extremely similar"},
     {"id": 1, "topic": "Intro Continued", "similarity": "extremely similar"},
@@ -49,19 +55,11 @@ def mock_model():
 
 
 def test_make_time_chain(mock_model):
-    # Mock transcript JSON
-    transcript_json = [
-        {"start": "00:00:01", "text": "Hello world."},
-        {"start": "00:00:05", "text": "This is a test."},
-        {"start": "00:00:10", "text": "Another sentence."},
-    ]
-
     # Create the time chain
     time_chain = make_time_chain(transcript_json)
 
     # Assert that the result matches the expected output
     assert time_chain(mock_model) == simple_transcript + simple_transcript
-
 
 
 def test_coalesce_similar_ids_no_topics():

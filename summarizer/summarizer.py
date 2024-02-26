@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import shutil
-import json
 import subprocess
 import sys
 from functools import wraps
@@ -12,7 +11,7 @@ import click
 
 from .ffmpeg import create_lower_quality_mp3, file_contains_video_or_audio
 from .ffmpeg import logger as ffmpeg_logger
-from .templates import run_time_chain, run_clif_chain, run_title_chain
+from .templates import make_time_chain, run_clif_chain, make_title_chain
 from .snapshots import (
     create_snapshots_at_time_increments,
     create_snapshots_file,
@@ -120,7 +119,7 @@ async def update_snapshots(dirname: str, file_path: str, has_video: bool, quiet:
 
 def update_summary(dirname: str, quiet: bool, transcript_type: str, transcript_json):
     if transcript_type == "time":
-        chain = run_time_chain
+        chain = make_time_chain(transcript_json)
     elif transcript_type == "clif":
         chain = run_clif_chain
     else:
@@ -128,13 +127,9 @@ def update_summary(dirname: str, quiet: bool, transcript_type: str, transcript_j
         return sys.exit(1)
 
     print("Generating summary...") if not quiet else None
-    transcript_text = "\n".join(
-        [f"id({i})|start({s['start']}) : {s['text']}" for i, s in enumerate(transcript_json)]
-    )
 
     return generate_summary(
         chain,
-        transcript_text,
         os.path.join(dirname, f"chapters-{transcript_type}.json"),
         quiet,
     )
@@ -142,11 +137,8 @@ def update_summary(dirname: str, quiet: bool, transcript_type: str, transcript_j
 
 def update_title(dirname: str, quiet: bool, chapters_json):
     print("Generating title...") if not quiet else None
-    chapters = "Sections:\n" + "\n".join(
-        [f"{s['title']} : {s['introduction']}" for s in chapters_json]
-    )
     return generate_summary(
-        run_title_chain, chapters, os.path.join(dirname, "title.json"), quiet
+        make_title_chain(chapters_json), os.path.join(dirname, "title.json"), quiet
     )
 
 
