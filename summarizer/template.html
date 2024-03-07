@@ -177,6 +177,10 @@
             let start = this.getAttribute("data-start");
             setAudioPlayerOffset(start);
           });
+          div.addEventListener("mouseenter", function () {
+            let start = this.getAttribute("data-start");
+            displayClosestImage(timeStringToSeconds(start));
+          });
         });
 
         summaryDivs = document.querySelectorAll("div[data-chapter-start]");

@@ -3,7 +3,6 @@ from os.path import dirname
 import time
 import os
 from typing import Dict, List
-import yaml
 import json
 from webvtt import WebVTT
 
@@ -37,11 +36,12 @@ def convert_transcript_to_json(transcript_path: str) -> List[Dict]:
     vtt = WebVTT.read(transcript_path)
     entries = [
         {
+            "id": i,
             "start": seconds_to_hms(caption.start_in_seconds),
             "end": seconds_to_hms(caption.end_in_seconds),
             "text": caption.text.strip(),
         }
-        for caption in vtt
+        for i, caption in enumerate(vtt.captions)
     ]
     with open(f"{dirname(transcript_path)}/transcript.json", "w") as f:
         f.write(json.dumps(entries, indent=2))

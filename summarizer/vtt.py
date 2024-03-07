@@ -1,6 +1,5 @@
 import os
 import re
-import json
 
 
 def time_string_to_seconds(time_string):

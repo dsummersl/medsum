@@ -174,7 +174,6 @@ async def update_all(
 @click.option("--output", "-o", default=None, help="Where to drop the output files")
 @click.option(
     "--open/--no-open",
-    "-o",
     default=False,
     help="Open the index.html file in a browser",
 )

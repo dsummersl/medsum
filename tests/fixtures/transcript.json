@@ -1,25 +1,30 @@
 [
   {
+    "id": 0,
     "start": "00:00:01",
     "end": "00:00:02",
     "text": "Hi everybody."
   },
   {
+    "id": 1,
     "start": "00:00:02",
     "end": "00:00:07",
     "text": "This is a quick overview on how\nwe're going to do Color Wheel Part One."
   },
   {
+    "id": 2,
     "start": "00:00:07",
     "end": "00:00:08",
     "text": "So there are two parts of this test."
   },
   {
+    "id": 3,
     "start": "00:00:08",
     "end": "00:00:11",
     "text": "They're basically variations\non the same thing, but we split it up into"
   },
   {
+    "id": 4,
     "start": "00:00:11",
     "end": "00:00:12",
     "text": "two separate parts."
