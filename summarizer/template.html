@@ -132,17 +132,24 @@
           chaptersContainer.appendChild(chapterDiv);
 
           chapter.insights.forEach((summary) => {
-            let start = TRANSCRIPT[summary.sourceIds[0] ].start
-            let summaryStartTime = timeStringToSeconds(start);
             let summaryDiv = document.createElement("div");
-            summaryDiv.setAttribute("class", "summary-container flex flex-col hover:bg-gray-50");
-            let transcriptReferences = summary.sourceIds.slice(0,10).map(id => `
-              <div class="cursor-pointer ml-1 hover:font-bold" data-start="${TRANSCRIPT[id].start}" title="${TRANSCRIPT[id].text}">
-                ${TRANSCRIPT[id].start}
-              </div>
-            `);
-            let transcriptDivs = `<div class="text-xs italic flex self-end select-none z-10 flex-wrap max-w-prose">(${transcriptReferences.join(', ')} )</div>`;
-            summaryDiv.innerHTML =  transcriptDivs +'<div class="-mt-5">' + marked.parse(summary.markdown) + '</div>';
+            summaryDiv.setAttribute("class", "summary-container flex flex-col hover:bg-gray-50 relative");
+            let firstTime = TRANSCRIPT[summary.sourceIds[0]].start;
+            let lastTime = TRANSCRIPT[summary.sourceIds[summary.sourceIds.length - 1]].start;
+            let pipContainer = document.createElement("div");
+            pipContainer.setAttribute("class", "pip-container flex justify-between items-center mt-2 mb-2");
+            let firstPip = document.createElement("div");
+            firstPip.setAttribute("class", "pip cursor-pointer hover:bg-gray-200 rounded-full p-1");
+            firstPip.setAttribute("data-start", firstTime);
+            firstPip.setAttribute("title", firstTime);
+            let lastPip = document.createElement("div");
+            lastPip.setAttribute("class", "pip cursor-pointer hover:bg-gray-200 rounded-full p-1");
+            lastPip.setAttribute("data-start", lastTime);
+            lastPip.setAttribute("title", lastTime);
+            pipContainer.appendChild(firstPip);
+            pipContainer.appendChild(lastPip);
+            summaryDiv.appendChild(pipContainer);
+            summaryDiv.innerHTML += '<div class="summary-markdown">' + marked.parse(summary.markdown) + '</div>';
             chapterDiv.appendChild(summaryDiv);
           });
         });
@@ -338,3 +345,23 @@
     height: 100px;
   }
 </style>
+      .pip-container .pip {
+        width: 10px;
+        height: 10px;
+        background-color: #ddd;
+      }
+
+      .pip-container .pip:hover::after {
+        content: attr(title);
+        position: absolute;
+        white-space: nowrap;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #666;
+        color: #fff;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        z-index: 20;
+      }
