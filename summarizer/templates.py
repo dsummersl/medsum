@@ -3,10 +3,10 @@ import logging
 
 from typing import List
 from langchain.prompts import PromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.pydantic_v1 import BaseModel,Field
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.runnables import RunnablePassthrough
-from .topics import identify_topics, identify_topics_gensim, split_by_dominant_topics
+from .topics import split_by_dominant_topics, identify_topics
 
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,7 @@ class SourceAndSummary(BaseModel):
 class Transitions(BaseModel):
     topics: List[SourceAndSummary]
 
+# TODO https://python.langchain.com/docs/use_cases/extraction/how_to/examples -- explicitly define my own examples
 
 TIME_TEMPLATE = """\
 Transcript:
@@ -29,16 +30,13 @@ Transcript:
 
 ***
 
-Summarize the transcript above, and provide detailed descriptions of the content:
-- Generate an introductory summary, identifying the topic.
-- Identify the main topics of the transcript.
-  - Each individuals referenced, and their role in the topic.
-  - Times or events mentioned in the topic
-  - Locations or places mentioned in the topic
-  - Things or objects mentioned in the topic
-  - Ideas, definitions, or theories mentioned in the topic
-- Use markdown latex format when referring to symbols, and equations (for instance $x=3$).
+Summarize the transcript above:
+- Generate a title that summarizes the content of the transcript.
+- Generate two to six paragraphs in markdown summarizing the entire transcript.
+- For each paragraph include all transcript source ids that are relevant.
+- Use latex $$ format when referring to symbols, and equations (for instance $x=3$).
 - Language should be terse, clear, and lack unnecessary words.
+- Don't use words like "this transcript", or "the speaker said".
 
 {format_instructions}
 
@@ -74,7 +72,9 @@ class Paragraph(BaseModel):
     sourceIds: List[int] = Field(
         description="source id numbers this paragragh is composed of"
     )
-    markdown: str = Field()
+    markdown: str = Field(
+        example="Math can be as simple as $2x^2 = 3 + 4_b$ or just **crazy** _fun_."
+    )
 
 
 class Topic(BaseModel):
@@ -82,7 +82,7 @@ class Topic(BaseModel):
     summary: str = Field(
         description="A markdown formatted summarizing to the insights of a topic. "
     )
-    insights: List[Paragraph]
+    insights: List[Paragraph] = Field(min_items=2, max_items=6)
 
 
 class Article(BaseModel):
@@ -112,7 +112,6 @@ def make_time_chain(transcript_json: List[dict]):
             )
 
         turns = identify_topics(transcript_json)
-        # turns = identify_topics_gensim(transcript_json)
         coalesced_turn_ids = split_by_dominant_topics([t['topic'] for t in turns['transcripts']], 0.2)
 
         range_entries = [make_source_text(enumerate(transcript_json[r[0]:r[1]], r[0])) for r in coalesced_turn_ids]

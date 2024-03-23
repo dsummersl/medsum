@@ -136,12 +136,17 @@
             let summaryStartTime = timeStringToSeconds(start);
             let summaryDiv = document.createElement("div");
             summaryDiv.setAttribute("class", "summary-container flex flex-col hover:bg-gray-50");
-            let transcriptReferences = summary.sourceIds.slice(0,10).map(id => `
-              <div class="cursor-pointer ml-1 hover:font-bold" data-start="${TRANSCRIPT[id].start}" title="${TRANSCRIPT[id].text}">
-                ${TRANSCRIPT[id].start}
-              </div>
-            `);
-            let transcriptDivs = `<div class="text-xs italic flex self-end select-none z-10 flex-wrap max-w-prose">(${transcriptReferences.join(', ')} )</div>`;
+            let transcriptReferences = summary.sourceIds.map((id, i) => {
+              let val = '○';
+              if (i === 0 || i === summary.sourceIds.length - 1) {
+                val = TRANSCRIPT[id].start;
+              }
+              return `
+                <div class="cursor-pointer ml-1 hover:font-bold" data-start="${TRANSCRIPT[id].start}" title="${TRANSCRIPT[id].start}: ${TRANSCRIPT[id].text}">
+                  ${val}
+                </div>`;
+            } );
+            let transcriptDivs = `<div class="text-xs italic flex self-end select-none z-10 flex-wrap max-w-prose">(${transcriptReferences.join('')} )</div>`;
             summaryDiv.innerHTML =  transcriptDivs +'<div class="-mt-5">' + marked.parse(summary.markdown) + '</div>';
             chapterDiv.appendChild(summaryDiv);
           });
